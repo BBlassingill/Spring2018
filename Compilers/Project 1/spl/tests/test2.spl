@@ -1,4 +1,0 @@
-var x: int = 0;
-print("Input: ");
-read(x);
-print(1+x*2);
