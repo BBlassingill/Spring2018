@@ -49,6 +49,9 @@ DIGIT=[0-9]
 "="					{ System.out.println("EQUAL");}
 "<"					{ return symbol(sym.LT);}
 ">"					{ return symbol(sym.GT);}
+"<>"                { return symbol(sym.NEQ);}
+"<="                { return symbol(sym.LEQ);}
+">="                { return symbol(sym.GEQ);}
 "{"					{ return symbol(sym.LB);}
 "}"					{ return symbol(sym.RB);}
 "["					{ return symbol(sym.LSB);}
@@ -60,9 +63,10 @@ DIGIT=[0-9]
 "+"					{ return symbol(sym.PLUS);}
 "*"					{ return symbol(sym.TIMES);}
 "-"                 { return symbol(sym.MINUS);}
-[-DIGIT+]           { /*represents a negative number */ return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
+(-DIGIT+)           { /*represents a negative number */ return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
 \"(.*)\"     		{ /* Returns a string */ return symbol(sym.STRING_LITERAL, yytext().substring(1, yytext().length()-1));}
-[ID+.ID+]           { /* Returns a dot if it's in between 2 IDs */ return symbol(sym.DOT);}
+(DIGIT+.DIGIT+)     { return symbol(sym.FLOAT, new Float(yytext()));}
+(ID+.ID+)           { /* Returns a dot if it's in between 2 IDs */ return symbol(sym.DOT);}
 "var"				{ return symbol(sym.VAR);}
 "def"				{ return symbol(sym.DEF);}
 "read"				{ System.out.println("READ");}
@@ -70,6 +74,7 @@ DIGIT=[0-9]
 "int"				{ System.out.println("INT");}
 "if"                { return symbol(sym.IF);}
 "else"              { return symbol(sym.ELSE);}
+"return"            { return symbol(sym.RETURN);}
 "array"             { return symbol(sym.ARRAY);}
 "for"               { return symbol(sym.FOR);}
 "to"                { return symbol(sym.TO);}
