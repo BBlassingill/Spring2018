@@ -33,16 +33,47 @@ import java_cup.runtime.Symbol;
   }
 
 %}
+ID=[a-zA-Z][a-zA-Z0-9_]*
+DIGIT=[0-9]
 
 %%
-//"print"         { "PRINT";}
-//"array"         { return symbol(sym.ARRAY); }
-//.               { lexical_error("Illegal character"); }
-[ \t\r\n\f]       { /* ignore white spaces. */ }
-"print"           { System.out.println("PRINT");}
-"("               { return symbol(sym.LP);}
-")"               { return symbol(sym.RP);}
-";"               { return symbol(sym.SEMI); }
-
-/* GENERIC REs */
-\"(.*)\"     { /* Returns the string value in a print statement  */ return symbol(sym.STRING_LITERAL, yytext().substring(1, yytext().length()-1));}
+//"print"         	{ "PRINT";}
+//"array"         	{ return symbol(sym.ARRAY); }
+[ \t\r\n\f]       	{ /* ignore white spaces. */ }
+"print"           	{ System.out.println("PRINT");}
+"("               	{ return symbol(sym.LP);}
+")"               	{ return symbol(sym.RP);}
+";"               	{ return symbol(sym.SEMI);}
+":"					{ return symbol(sym.COLON);}
+","                 { return symbol(sym.COMMA);}
+"="					{ System.out.println("EQUAL");}
+"<"					{ return symbol(sym.LT);}
+">"					{ return symbol(sym.GT);}
+"{"					{ return symbol(sym.LB);}
+"}"					{ return symbol(sym.RB);}
+"["					{ return symbol(sym.LSB);}
+"]"					{ return symbol(sym.RSB);}
+"&&"                { return symbol(sym.AND);}
+"=="                { return symbol(sym.EW);}
+"true"              { return symbol(sym.TRUE);}
+"false"             { return symbol(sym.FALSE);}
+"+"					{ return symbol(sym.PLUS);}
+"*"					{ return symbol(sym.TIMES);}
+"-"                 { return symbol(sym.MINUS);}
+[-DIGIT+]           { /*represents a negative number */ return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
+\"(.*)\"     		{ /* Returns a string */ return symbol(sym.STRING_LITERAL, yytext().substring(1, yytext().length()-1));}
+[ID+.ID+]           { /* Returns a dot if it's in between 2 IDs */ return symbol(sym.DOT);}
+"var"				{ return symbol(sym.VAR);}
+"def"				{ return symbol(sym.DEF);}
+"read"				{ System.out.println("READ");}
+"type"              { return symbol(sym.TYPE);}
+"int"				{ System.out.println("INT");}
+"if"                { return symbol(sym.IF);}
+"else"              { return symbol(sym.ELSE);}
+"array"             { return symbol(sym.ARRAY);}
+"for"               { return symbol(sym.FOR);}
+"to"                { return symbol(sym.TO);}
+"while"             { return symbol(sym.WHILE);}
+{DIGIT}+			{ return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
+{ID}				{ return symbol(sym.ID, yytext());}
+.					{ lexical_error("Illegal character");}
