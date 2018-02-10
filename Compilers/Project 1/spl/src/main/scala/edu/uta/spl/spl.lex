@@ -35,18 +35,17 @@ import java_cup.runtime.Symbol;
 %}
 ID=[a-zA-Z][a-zA-Z0-9_]*
 DIGIT=[0-9]
-
+COMMENT_BLOCK=(\/\*[^\*\/]*\*\/)
 %%
-//"print"         	{ "PRINT";}
-//"array"         	{ return symbol(sym.ARRAY); }
 [ \t\r\n\f]       	{ /* ignore white spaces. */ }
-"print"           	{ System.out.println("PRINT");}
+{COMMENT_BLOCK}     { /* ignore comment block */}
 "("               	{ return symbol(sym.LP);}
 ")"               	{ return symbol(sym.RP);}
 ";"               	{ return symbol(sym.SEMI);}
 ":"					{ return symbol(sym.COLON);}
 ","                 { return symbol(sym.COMMA);}
-"="					{ System.out.println("EQUAL");}
+"\."                { return symbol(sym.DOT);}
+"="					{ return symbol(sym.EQUAL);}
 "<"					{ return symbol(sym.LT);}
 ">"					{ return symbol(sym.GT);}
 "<>"                { return symbol(sym.NEQ);}
@@ -57,28 +56,41 @@ DIGIT=[0-9]
 "["					{ return symbol(sym.LSB);}
 "]"					{ return symbol(sym.RSB);}
 "&&"                { return symbol(sym.AND);}
-"=="                { return symbol(sym.EW);}
+"=="                { return symbol(sym.EQ);}
+"!"                 { return symbol(sym.NOT);}
+"||"                { return symbol(sym.OR);}
 "true"              { return symbol(sym.TRUE);}
 "false"             { return symbol(sym.FALSE);}
 "+"					{ return symbol(sym.PLUS);}
 "*"					{ return symbol(sym.TIMES);}
 "-"                 { return symbol(sym.MINUS);}
+"/"                 { return symbol(sym.DIV);}
+"%"                 { return symbol(sym.MOD);}
+"#"                 { return symbol(sym.SHARP);}
 (-DIGIT+)           { /*represents a negative number */ return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
-\"(.*)\"     		{ /* Returns a string */ return symbol(sym.STRING_LITERAL, yytext().substring(1, yytext().length()-1));}
-(DIGIT+.DIGIT+)     { return symbol(sym.FLOAT, new Float(yytext()));}
-(ID+.ID+)           { /* Returns a dot if it's in between 2 IDs */ return symbol(sym.DOT);}
+(DIGIT+)            { return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
+(\"[^\"]*\")        { return symbol(sym.STRING_LITERAL, yytext().substring(1, yytext().length()-1));}
+(DIGIT+.DIGIT+)     { return symbol(sym.FLOAT_LITERAL, new Float(yytext()));}
 "var"				{ return symbol(sym.VAR);}
 "def"				{ return symbol(sym.DEF);}
-"read"				{ System.out.println("READ");}
+"read"				{ return symbol(sym.READ);}
 "type"              { return symbol(sym.TYPE);}
-"int"				{ System.out.println("INT");}
+"int"				{ return symbol(sym.INT);}
+"boolean"           { return symbol(sym.BOOLEAN);}
+"float"             { return symbol(sym.FLOAT);}
+"string"            { return symbol(sym.STRING);}
 "if"                { return symbol(sym.IF);}
 "else"              { return symbol(sym.ELSE);}
 "return"            { return symbol(sym.RETURN);}
+"by"                { return symbol(sym.BY);}
 "array"             { return symbol(sym.ARRAY);}
 "for"               { return symbol(sym.FOR);}
 "to"                { return symbol(sym.TO);}
 "while"             { return symbol(sym.WHILE);}
+"loop"              { return symbol(sym.LOOP);}
+"print"           	{ return symbol(sym.PRINT);}
+"error"             { return symbol(sym.error);}
+"exit"              { return symbol(sym.EXIT);}
 {DIGIT}+			{ return symbol(sym.INTEGER_LITERAL, new Integer(yytext()));}
 {ID}				{ return symbol(sym.ID, yytext());}
 .					{ lexical_error("Illegal character");}
