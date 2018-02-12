@@ -102,7 +102,7 @@ final class HttpRequest implements Runnable {
             //statusLine = "404 Not Found" + CRLF;
             statusLine = "HTTP/1.1 404 Not Found" + CRLF;
 
-            contentTypeLine = "Content-Type: text/html";
+            contentTypeLine = "Content-Type: text/html" + CRLF;
             entityBody = "<HTML><HEAD><TITLE>Not Found</TITLE></HEAD><BODY>Not Found</BODY></HTML>";
 
         }
@@ -126,11 +126,11 @@ final class HttpRequest implements Runnable {
             os.writeBytes(entityBody);
         }
 
-        //Get and display the header lines
-        String headerLine = null;
-        while ((headerLine = br.readLine()).length() != 0) {
-            System.out.println(headerLine);
-        }
+//        //Get and display the header lines
+//        String headerLine = null;
+//        while ((headerLine = br.readLine()).length() != 0) {
+//            System.out.println(headerLine);
+//        }
 
         //Close streams and socket
         os.close();
