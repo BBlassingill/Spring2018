@@ -11,7 +11,9 @@ import java.util.regex.Pattern;
 public final class WebServer {
     public static void main(String args[]) throws Exception {
         //Set the port number
-        int port = 8080;
+        //TODO: Grab port number from arguments
+        //int port = Integer.parseInt(args[0]);
+        int port = 8443;
 
         //Establish the listen socket
         ServerSocket listeningSocket = new ServerSocket(port);
@@ -96,6 +98,10 @@ final class HttpRequest implements Runnable {
         if (fileExists) {
             statusLine = "HTTP/1.1 200 OK" + CRLF;
             contentTypeLine = "Content-Type: " + contentType(fileName) + CRLF;
+            entityBody = "<HTML><HEAD><TITLE>File found.</TITLE></HEAD><BODY>You are free to download the file.</BODY></HTML>";
+
+            //TODO: Need to figure out how to return file to client
+            //TODO: Test by doing localhost:8080/fileName
         }
 
         else {
@@ -103,15 +109,17 @@ final class HttpRequest implements Runnable {
             statusLine = "HTTP/1.1 404 Not Found" + CRLF;
 
             contentTypeLine = "Content-Type: text/html" + CRLF;
-            entityBody = "<HTML><HEAD><TITLE>Not Found</TITLE></HEAD><BODY>Not Found</BODY></HTML>";
+            entityBody = "<HTML><HEAD><TITLE>File Not Found</TITLE></HEAD><BODY>Not Found</BODY></HTML>";
 
         }
 
         //Send the status line
         os.writeBytes(statusLine);
+        System.out.println(statusLine);
 
         //Send the content type line
         os.writeBytes(contentTypeLine);
+        System.out.println(contentTypeLine);
 
         //Send a blank line to indicate the end of the header lines
         os.writeBytes(CRLF);
@@ -126,11 +134,11 @@ final class HttpRequest implements Runnable {
             os.writeBytes(entityBody);
         }
 
-//        //Get and display the header lines
-//        String headerLine = null;
-//        while ((headerLine = br.readLine()).length() != 0) {
-//            System.out.println(headerLine);
-//        }
+        //Get and display the header lines
+        String headerLine = null;
+        while ((headerLine = br.readLine()).length() != 0) {
+            System.out.println(headerLine);
+        }
 
         //Close streams and socket
         os.close();
@@ -145,6 +153,7 @@ final class HttpRequest implements Runnable {
 
         matcher.find();
         String endOfFileName = matcher.group(1);
+        System.out.println(endOfFileName);
         String contentType = "";
 
         switch(endOfFileName) {
