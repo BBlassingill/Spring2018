@@ -1,5 +1,3 @@
-package client;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,8 +14,12 @@ public class WebClient {
     public static void main(String[] args) throws Exception {
 
 
-        String hostName = "localhost";
-        int portNumber = 8443;
+//        String hostName = "localhost";
+//        int portNumber = 8443;
+
+        String hostName = args[0];
+        int portNumber = Integer.parseInt(args[1]);
+        String fileName = args[2];
 
         try {
             startTime = System.currentTimeMillis();
@@ -27,7 +29,7 @@ public class WebClient {
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            out.println("GET /TestWordDocument.docx HTTP/1.1");
+            out.println("GET /" + fileName + " HTTP/1.1");
             //
             out.println("Connection: Close");
 

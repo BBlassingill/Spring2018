@@ -1,9 +1,4 @@
-package server;
-
-import com.sun.security.ntlm.Server;
-
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -11,12 +6,12 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class WebServer {
+public class WebServer {
     public static void main(String args[]) throws Exception {
         //Set the port number
         //TODO: Grab port number from arguments
-        //int port = Integer.parseInt(args[0]);
-        int port = 8443;
+        int port = Integer.parseInt(args[0]);
+        //int port = 8443;
 
         //Establish the listen socket
         ServerSocket listeningSocket = new ServerSocket(port);
@@ -202,7 +197,7 @@ final class HttpRequest implements Runnable {
                 contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
                 break;
             default:
-                contentType = "application/octet‐stream";
+                contentType = "text/plain";
                 break;
 
         }
