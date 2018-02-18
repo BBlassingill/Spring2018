@@ -1,9 +1,12 @@
 package server;
 
+import com.sun.security.ntlm.Server;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,22 +20,26 @@ public final class WebServer {
 
         //Establish the listen socket
         ServerSocket listeningSocket = new ServerSocket(port);
-        //Socket listeningSocket = new Socket("localhost", port);
+        listeningSocket.setSoTimeout(5000);
 
         //Process HTTP service requests in an infinite loop
         while (true) {
-            //Listen for a TCP connection request
-            Socket clientSocket = listeningSocket.accept();
-            //BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            try {
+                //Listen for a TCP connection request
+                Socket clientSocket = listeningSocket.accept();
+                //BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            //Construct an object to process the HTTP request message
-            HttpRequest request = new HttpRequest(clientSocket);
+                //Construct an object to process the HTTP request message
+                HttpRequest request = new HttpRequest(clientSocket, listeningSocket);
 
-            //Create a new thread to process the request
-            Thread thread = new Thread(request);
+                //Create a new thread to process the request
+                Thread thread = new Thread(request);
 
-            //Start the thread
-            thread.start();
+                //Start the thread
+                thread.start();
+            } catch (Exception e) {
+                //This exception will occur if a time out is reached but no action will be taken so the socket remains open.
+            }
         }
     }
 }
@@ -40,10 +47,11 @@ public final class WebServer {
 final class HttpRequest implements Runnable {
     final static String CRLF = "\r\n";
     Socket socket;
-
+    ServerSocket serverSocket;
     //Constructor
-    public HttpRequest(Socket socket) throws Exception {
+    public HttpRequest(Socket socket, ServerSocket serverSocket) throws Exception {
         this.socket = socket;
+        this.serverSocket = serverSocket;
     }
 
     //Implement the run() method of the Runnable interface
@@ -91,21 +99,17 @@ final class HttpRequest implements Runnable {
         }
 
         //Construct the response message
-        String statusLine = null;
-        String contentTypeLine = null;
+        String statusLine;
+        String contentTypeLine;
+        String socketInfoLine = "Server Socket type: Connection-oriented (TCP)" + CRLF + "Server Timeout: 5 seconds" + CRLF + "Server Protocol: TCP/IP" + CRLF + "Server Host Name: localhost" + CRLF;
         String entityBody = null;
 
         if (fileExists) {
             statusLine = "HTTP/1.1 200 OK" + CRLF;
             contentTypeLine = "Content-Type: " + contentType(fileName) + CRLF;
-            entityBody = "<HTML><HEAD><TITLE>File found.</TITLE></HEAD><BODY>You are free to download the file.</BODY></HTML>";
-
-            //TODO: Need to figure out how to return file to client
-            //TODO: Test by doing localhost:8080/fileName
         }
 
         else {
-            //statusLine = "404 Not Found" + CRLF;
             statusLine = "HTTP/1.1 404 Not Found" + CRLF;
 
             contentTypeLine = "Content-Type: text/html" + CRLF;
@@ -113,15 +117,10 @@ final class HttpRequest implements Runnable {
 
         }
 
-        //Send the status line
+        //Send the response back to the client
         os.writeBytes(statusLine);
-        System.out.println(statusLine);
-
-        //Send the content type line
         os.writeBytes(contentTypeLine);
-        System.out.println(contentTypeLine);
-
-        //Send a blank line to indicate the end of the header lines
+        os.writeBytes(socketInfoLine);
         os.writeBytes(CRLF);
 
         //Send the entity body
@@ -146,6 +145,19 @@ final class HttpRequest implements Runnable {
         socket.close();
     }
 
+    private String getHostAddress(SocketAddress remoteSocketAddress) {
+        String address = remoteSocketAddress.toString();
+
+        Pattern pattern = Pattern.compile("/(.*?):");
+        Matcher matcher = pattern.matcher(address);
+
+        if (matcher.find()) {
+            address = matcher.group(1);
+        }
+
+        return address;
+    }
+
     private static String contentType(String fileName) {
         String patternString = "(\\.[a-zA-Z]+)";
         Pattern pattern = Pattern.compile(patternString);
@@ -153,8 +165,7 @@ final class HttpRequest implements Runnable {
 
         matcher.find();
         String endOfFileName = matcher.group(1);
-        System.out.println(endOfFileName);
-        String contentType = "";
+        String contentType;
 
         switch(endOfFileName) {
             case ".htm":
