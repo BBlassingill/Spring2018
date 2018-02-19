@@ -5,10 +5,6 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Author: Brittany Blassingill
- * Student ID: 1001367082
- */
 public class WebServer {
     public static void main(String args[]) throws Exception {
         int port = Integer.parseInt(args[0]);

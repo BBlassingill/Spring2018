@@ -30,7 +30,7 @@ public class WebClient {
             portNumber = Integer.parseInt(args[1]);
             fileName = args[2];
         }
-
+        
 
         try {
             //Get the starting timestamp to calculate the RTT
