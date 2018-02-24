@@ -5,6 +5,10 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Author: Brittany Blassingill
+ * Student ID: 1001367082
+ */
 public class WebServer {
     public static void main(String args[]) throws Exception {
         int port = Integer.parseInt(args[0]);
@@ -18,7 +22,6 @@ public class WebServer {
             try {
                 //Listen for a TCP connection request
                 Socket clientSocket = listeningSocket.accept();
-
                 //Construct an object to process the HTTP request message
                 HttpRequest request = new HttpRequest(clientSocket, listeningSocket);
 
@@ -41,6 +44,7 @@ final class HttpRequest implements Runnable {
 
     public HttpRequest(Socket socket, ServerSocket serverSocket) throws Exception {
         this.socket = socket;
+        System.out.println("Get local address: " + socket.getRemoteSocketAddress());
         this.serverSocket = serverSocket;
     }
 
@@ -58,6 +62,7 @@ final class HttpRequest implements Runnable {
     private void processRequest() throws Exception {
         //Get a reference to the socket's input and output streams
         DataOutputStream os = new DataOutputStream(socket.getOutputStream());
+
 
         //Set up unput stream filters
         BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -101,9 +106,8 @@ final class HttpRequest implements Runnable {
 
         else {
             statusLine = "HTTP/1.1 404 Not Found" + CRLF;
-
             contentTypeLine = "Content-Type: text/html" + CRLF;
-            entityBody = "<HTML><HEAD><TITLE>File Not Found</TITLE></HEAD><BODY>Not Found</BODY></HTML>";
+            entityBody = "<HTML><HEAD><meta charset=\"UTF-8\"><TITLE>File Not Found</TITLE></HEAD><BODY>Not Found</BODY></HTML>";
 
         }
 
