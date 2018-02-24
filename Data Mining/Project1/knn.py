@@ -28,10 +28,6 @@ from collections import defaultdict
 # testData_columns = {}
 
 def loadDataset():
-
-	# with open("ATNT50/trainDataXY.txt", "r") as trainingData:
-	# 	trainingLines = csv.reader(trainingData)
-	# 	columns = zip(*trainingLines)
 	trainingData = defaultdict(list)
 	with open('ATNT50/trainDataXY.txt', 'r') as f:
 		reader = csv.reader(f, delimiter=',')
@@ -51,35 +47,73 @@ def loadDataset():
 	return (trainingData_columns, testData_columns) 				
 
 
+def euclideanDistance(trainingArray, testArray):
+	distance = 0.0
 
-def euclideanDistance(instance1, instance2, length):
-	distance = 0
-	for x in range(length):
-		distance += pow((instance1[x] - instance2[x]), 2)
-	return math.sqrt(distance)
+	for i in range(len(trainingArray)-1):
+ 		distance += pow((float(trainingArray[i])-float(testArray[i])),2)
+ 		distance = math.sqrt(distance)
 
-def getNeighbors(trainingSet, testInstance, k):
-	distances = []
-	length = len(testInstance)-1
-	for x in range(len(trainingSet)):
-		dist = euclideanDistance(testInstance, trainingSet[x], length)
-		distances.append((trainingSet[x], dist))
-	distances.sort(key=operator.itemgetter(1))
-	neighbors = []
-	for x in range(k):
-		neighbors.append(distances[x][0])
-	return neighbors
+	return distance
 
-def getResponse(neighbors):
-	classVotes = {}
-	for x in range(len(neighbors)):
-		response = neighbors[x][-1]
-		if response in classVotes:
-			classVotes[response] += 1
-		else:
-			classVotes[response] = 1
-	sortedVotes = sorted(classVotes.items(), key=operator.itemgetter(1), reverse=True)
-	return sortedVotes[0][0]
+
+def getNeighbors(trainingSet, testSet, k):
+	# distances = []
+	# length = len(testInstance)-1
+	# for x in range(len(trainingSet)):
+	# 	dist = euclideanDistance(testInstance, trainingSet[x], length)
+	# 	distances.append((trainingSet[x], dist))
+	# distances.sort(key=operator.itemgetter(1))
+	# neighbors = []
+	# for x in range(k):
+	# 	neighbors.append(distances[x][0])
+	# return neighbors
+	
+
+	for arr1 in testSet:
+		distance = []
+		knn = []
+
+		class1 = 0
+		class2 = 0
+		class3 = 0
+		class4 = 0
+		class5 = 0
+
+		for arr2 in trainingSet:
+			eu_distance = euclideanDistance(arr1, arr2)
+			distance.append((arr2[0], eu_distance))
+			distance.sort(key = operator.itemgetter(1)) #sorting by the distance for each attribute
+			knn = distance[:k] #returns everything from 0th position to the number of neighbors specified in the list
+
+			for neighbor in knn:
+				if (neighbor[0]) == 1:
+					class1 += 1
+				if (neighbor[0]) == 2:
+					class2 += 1
+				if (neighbor[0]) == 3:
+					class3 += 1
+				if (neighbor[0]) == 4:
+					class4 += 1
+				if (neighbor[0]) == 5:
+					class5 += 1			
+
+	# return (knn, testSet)
+		numList = [class1, class2, class3, class4, class5]
+		arr1.insert(0, max(numList))
+
+	return testSet
+
+# def getResponse(neighbors):
+# 	classVotes = {}
+# 	for x in range(len(neighbors)):
+# 		response = neighbors[x][-1]
+# 		if response in classVotes:
+# 			classVotes[response] += 1
+# 		else:
+# 			classVotes[response] = 1
+# 	sortedVotes = sorted(classVotes.items(), key=operator.itemgetter(1), reverse=True)
+# 	return sortedVotes[0][0]
 
 def getAccuracy(testSet, predictions):
 	correct = 0             
@@ -92,8 +126,12 @@ def getAccuracy(testSet, predictions):
 def main():
 	# prepare data
 	(trainingData_columns,testData_columns) = loadDataset()
+	classified_testset = getNeighbors(trainingData_columns, testData_columns, 7)
 	# global trainingData_columns
-	print('Train set: ' + str(trainingData_columns))
+	file = open("result.txt", "w")
+	file.writelines(str(classified_testset))
+	file.close
+	print('Classified Test set: ' + str(classified_testset))
 	# trainingSet=[]
 	# testSet=[]
 	# split = 0.67
