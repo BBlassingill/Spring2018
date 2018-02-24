@@ -53,7 +53,6 @@ def euclideanDistance(trainingArray, testArray):
 	for i in range(len(trainingArray)-1):
  		distance += pow((float(trainingArray[i])-float(testArray[i])),2)
  		distance = math.sqrt(distance)
-
 	return distance
 
 
@@ -84,24 +83,39 @@ def getNeighbors(trainingSet, testSet, k):
 			eu_distance = euclideanDistance(arr1, arr2)
 			distance.append((arr2[0], eu_distance))
 			distance.sort(key = operator.itemgetter(1)) #sorting by the distance for each attribute
+
 			knn = distance[:k] #returns everything from 0th position to the number of neighbors specified in the list
 
 			for neighbor in knn:
-				if (neighbor[0]) == 1:
+				if (neighbor[0]) == '1':
 					class1 += 1
-				if (neighbor[0]) == 2:
+				if (neighbor[0]) == '2':
 					class2 += 1
-				if (neighbor[0]) == 3:
+				if (neighbor[0]) == '3':
 					class3 += 1
-				if (neighbor[0]) == 4:
+				if (neighbor[0]) == '4':
 					class4 += 1
-				if (neighbor[0]) == 5:
+				if (neighbor[0]) == '5':
 					class5 += 1			
 
 	# return (knn, testSet)
 		numList = [class1, class2, class3, class4, class5]
-		arr1.insert(0, max(numList))
+		# print(str(numList))
+		maxIndex = numList.index(max(numList))
 
+		# if (maxIndex == 0):
+		# 	arr1.insert(0, maxIndex)
+		# if (maxIndex == 0):
+		# 	arr1.insert(0, maxIndex)
+		# if (maxIndex == 0):
+		# 	arr1.insert(0, maxIndex)
+		# if (maxIndex == 0):
+		# 	arr1.insert(0, maxIndex)
+		# if (maxIndex == 0):
+		# 	arr1.insert(0, maxIndex)				
+		# print(str(testIndex))
+		arr1.insert(0, maxIndex+1)
+		# print(str(arr1))
 	return testSet
 
 # def getResponse(neighbors):
@@ -131,7 +145,7 @@ def main():
 	file = open("result.txt", "w")
 	file.writelines(str(classified_testset))
 	file.close
-	print('Classified Test set: ' + str(classified_testset))
+	# print('Classified Test set: ' + str(classified_testset))
 	# trainingSet=[]
 	# testSet=[]
 	# split = 0.67
