@@ -4,29 +4,6 @@ import math
 import operator
 from collections import defaultdict
 
-
-'''Necessary functions:
-	loadDataset
-	calculateDistance
-	prediction
-'''
-# def loadDataset(filename, split, trainingSet=[] , testSet=[]):
-# 	with open(filename, 'r') as csvfile:
-# 	    lines = csv.reader(csvfile)
-# 	    dataset = list(lines)
-# 	    for x in range(len(dataset)-1):
-# 	        for y in range(4):
-# 	            dataset[x][y] = float(dataset[x][y])
-# 	        if random.random() < split:
-# 	            trainingSet.append(dataset[x])
-# 	        else:
-# 	            testSet.append(dataset[x])
-
-# global trainingData_columns
-# trainingData_columns = {}
-# global testData_columns
-# testData_columns = {}
-
 def loadDataset():
 	trainingData = defaultdict(list)
 	with open('ATNT50/trainDataXY.txt', 'r') as f:
@@ -92,7 +69,7 @@ def getNeighbors(testSet, trainingSet, k):
 		numList = [class1, class2, class3, class4, class5]
 		maxIndex = numList.index(max(numList))
 		arr1.insert(0, maxIndex+1)
-		
+
 	return testSet
 
 def getAccuracy(testSet, predictions):
@@ -107,9 +84,7 @@ def main():
 	# prepare data
 	(trainingData_columns,testData_columns) = loadDataset()
 	classified_testset = getNeighbors(testData_columns, trainingData_columns, 7)
-	# file = open("result.txt", "w")
-	# file.writelines(str(classified_testset))
-	# file.close
-	# print('Classified Test set: ' + str(classified_testset))
-	# euclideanDistance(testData_columns, trainingData_columns);
+	file = open("result.txt", "w")
+	file.writelines(str(classified_testset))
+	file.close
 main()
