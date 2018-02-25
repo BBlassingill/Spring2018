@@ -23,22 +23,17 @@ def loadDataset():
 
 	return (trainingData_columns, testData_columns)
 
-def euclideanDistance(testArray, trainingArray):
+def euclideanDistance(testAvg, trainingAverage):
 	distance = 0.0
 
-	newTrainingArray = trainingArray[1:len(trainingArray)]
-
-	for i in range(len(newTrainingArray)):
-		distance += pow((float(testArray[i])-float(newTrainingArray[i])),2)
+	distance = pow(float(testAvg) - float(trainingAverage), 2)
 	distance = math.sqrt(distance)
 	return distance	
 
 def calculateAverages(testData_columns, trainingData_columns):
 	testAverages = []
 	trainingAverages = []
-	# averages.update(label, average)
-	# newTrainingArray = trainingArray[1:len(trainingArray)]
-	# print(str(trainingData_columns))
+
 	for col in trainingData_columns:
 		sum = 0.0
 		count = 0
@@ -47,8 +42,8 @@ def calculateAverages(testData_columns, trainingData_columns):
 		for num in newCol:
 			sum += int(num)
 			count += 1
+
 		average = sum/count
-		# print(str(average))
 		tup = (col[0], average)
 		trainingAverages.append(tup)
 
@@ -56,27 +51,33 @@ def calculateAverages(testData_columns, trainingData_columns):
 		sum = 0.0
 		count = 0
 
-		# newCol = col[1:len(col)]
 		for num in col:
 			sum += int(num)
 			count += 1
 		average = sum/count
-		# print(str(average))
-		# tup = (col[0], average)
 		testAverages.append(average)
 
 	return (testAverages, trainingAverages)
 
-def calculateCentroid(testAverages, trainingAverages) :
-	for avg in testAverages :
-		#calculate euclidean distance
+def calculateCentroid(testData_columns, testAverages, trainingAverages) :
 
+	finalResult = []
+	count = 0
+	for avg in testAverages :
+		distance = []
+
+		for pair in trainingAverages :
+			eu_distance = euclideanDistance(avg, pair[1])
+			distance.append((pair[0], eu_distance))	
+
+		distance.sort(key = operator.itemgetter(1))
+		
+		testData_columns[count].insert(0, distance[0][0])
+		count += 1
+
+	return testData_columns
 def main():
-	# prepare data
 	(trainingData_columns, testData_columns) = loadDataset()
-	# findNearestCentroid(trainingData_columns, testData_columns)
 	(testAverages, trainingAverages) = calculateAverages(testData_columns, trainingData_columns)
-	calculateCentroid(testAverages, trainingAverages)
-	# print(str(testAverages))
-	# (testAverages, trainingAverages) = calculateCentroid(testData_columns, averages)
+	finalResult = calculateCentroid(list(testData_columns), testAverages, trainingAverages)
 main()	
