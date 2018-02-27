@@ -14,7 +14,7 @@ with open('ATNT50/testDataX.txt', 'r') as f:
 	for row in reader:
 		testData.append(row)
 
-Xtrain = np.array(trainingData[1:len(trainingData)], dtype='int64')
+Xtrain = np.array(trainingData[1:], dtype='int64')
 Ytrain = np.array(trainingData[0:1], dtype='int64')
 
 Xtrain = Xtrain.transpose()

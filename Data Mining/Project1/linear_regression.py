@@ -13,7 +13,7 @@ with open('ATNT50/trainDataXY.txt', 'r') as f:
 	for row in reader:
 		trainingData.append(row)
 
-Xtrain = np.array(trainingData[1:len(trainingData)], dtype='int64')
+Xtrain = np.array(trainingData[1:], dtype='int64')
 # print(str(Xtrain))
 
 testData = []

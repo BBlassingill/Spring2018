@@ -21,13 +21,25 @@ def pickDataClass(filename, class_ids) :
 			dataSubset.append(row)
 
 	X = np.array(dataSubset, dtype='int64')
-	X = X.transpose()
-	print(X)			
+	dataSubset = X.transpose()	
 
 	return dataSubset
 
-# def splitData2TestTrain(filename, number_per_class, test_instances) :
+def splitData2TestTrain(filename, number_per_class, test_instances) :
+	originalData = []
+	with open(filename, 'r') as f:
+		reader = csv.reader(f, delimiter=',')
+		for row in reader:
+			originalData.append(row)
 
+	X = np.array(originalData[1:], dtype='int64').transpose()
+	Y = np.array(originalData[0:1]).transpose()
+
+	splitRatio = test_instances/number_per_class
+
+	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = splitRatio)
+
+	return X_train, y_train, X_test, y_test
 
 # def	storeTrainXTrainY :
 
@@ -36,5 +48,7 @@ def pickDataClass(filename, class_ids) :
 
 
 def main() :
-	pickDataClass('ATNT50/trainDataXY.txt', [1, 3])
+	# subsetData = pickDataClass('ATNT50/trainDataXY.txt', [1, 3])
+	X_train, y_train, X_test, y_test = splitData2TestTrain('ATNT50/trainDataXY.txt', 9, 5)
+
 main()	

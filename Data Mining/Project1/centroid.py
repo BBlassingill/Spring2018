@@ -38,7 +38,7 @@ def calculateAverages(testData_columns, trainingData_columns):
 		sum = 0.0
 		count = 0
 
-		newCol = col[1:len(col)]
+		newCol = col[1:]
 		for num in newCol:
 			sum += int(num)
 			count += 1
