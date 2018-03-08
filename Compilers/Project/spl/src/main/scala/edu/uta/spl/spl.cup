@@ -1,0 +1,219 @@
+/********************************************************************************
+*
+* File: spl.cup
+* The SPL parser
+*
+********************************************************************************/
+
+package edu.uta.spl;
+
+import scala.collection.immutable.*;
+import scala.Tuple2;
+import java_cup.runtime.*;
+
+
+parser code {:
+
+    static int[] tokens = {
+      sym.error, sym.ID, sym.STRING_LITERAL, sym.INTEGER_LITERAL, sym.FLOAT_LITERAL,
+      sym.AND, sym.ARRAY, sym.BOOLEAN, sym.BY, sym.DEF, sym.DIV, sym.ELSE, sym.EQUAL, sym.EXIT, sym.FALSE,
+      sym.FLOAT, sym.FOR, sym.IF, sym.INT, sym.LOOP, sym.MOD,
+      sym.NOT, sym.OR, sym.PRINT, sym.READ, sym.RETURN, sym.STRING, sym.TO, sym.TYPE, sym.VAR, sym.WHILE,
+      sym.PLUS, sym.MINUS, sym.TIMES, sym.TRUE,
+      sym.LT, sym.LEQ, sym.GT, sym.GEQ, sym.EQ, sym.NEQ, sym.COLON, sym.SEMI,
+      sym.COMMA, sym.SHARP, sym.DOT, sym.LP, sym.RP, sym.LB, sym.RB, sym.LSB, sym.RSB
+    };
+
+    static String[] token_names = {
+      "error", "ID", "STRING_LITERAL", "INTEGER_LITERAL", "FLOAT_LITERAL",
+      "AND &&", "ARRAY", "BOOLEAN", "BY", "DEF", "DIV /", "ELSE", "EQUAL", "EXIT", "FALSE",
+      "FLOAT", "FOR", "IF", "INT", "LOOP", "MOD %",
+      "NOT", "OR ||", "PRINT", "READ", "RETURN", "STRING", "TO", "TYPE", "VAR", "WHILE",
+      "PLUS +", "MINUS -", "TIMES *", "TRUE",
+      "LT <", "LEQ <=", "GT >", "GEQ >=", "EQ ==", "NEQ <>", "COLON :", "SEMI ;",
+      "COMMA ,", "SHARP #", "DOT .", "LP (", "RP )", "LB "+'{', "RB "+'}', "LSB [", "RSB ]"
+    };
+
+    public static String print ( Symbol s ) {
+        for ( int i = 0; i < tokens.length; i++ ) {
+            if (tokens[i] == s.sym) {
+                String res = token_names[i] + " ";
+                if (s.value == null)
+                    return res;
+                else if (s.value instanceof Integer)
+                    return res + ((Integer) s.value).intValue();
+                else if (s.value instanceof Float)
+                    return res + ((Float) s.value).floatValue();
+                else if (s.value instanceof String)
+                    return res + "\"" + (String) s.value + "\"";
+            }
+        };
+        return "?";
+    }
+
+    public void syntax_error ( Symbol token ) {
+        System.err.println("*** Syntax Error: " + print(token) + " (line: " + token.left
+                           + ", column: " + token.right + ")");
+        System.exit(1);
+    }
+
+    /** nil is the empty list */
+    final static List nil = Nil$.MODULE$;
+
+    /** Append list2 at the end of list1 (ie, return a new list containing
+        the elements from list1 followed by the elements from list2) */
+    static<T> List<T> append ( List<T> list1, List<T> list2 ) {
+        return list1.$colon$colon$colon(list2);
+    }
+
+    /** append the element elem at the end of the list
+       (ie, return a new list containing the list followed by the elem) */
+    static<T> List<T> append ( List<T> list, T elem ) {
+        return nil.$colon$colon(elem).$colon$colon$colon(list);
+    }
+
+    /** Insert the element elem at the beginning of the list
+        (ie, return a new list containing the elem followed by the list) */
+    static<T> List<T> add ( T elem, List<T> list ) {
+        return list.$colon$colon(elem);
+    }
+
+:};
+
+/* Terminals (tokens returned by the scanner). */
+terminal String  ID, STRING_LITERAL;
+terminal Integer INTEGER_LITERAL;
+terminal Float   FLOAT_LITERAL;
+terminal         AND, ARRAY, BOOLEAN, BY, DEF, DIV, ELSE, EQUAL, EXIT, FALSE,
+                 FLOAT, FOR, IF, INT, LOOP, MOD,
+                 NOT, OR, PRINT, READ, RETURN, STRING, TO, TYPE, VAR, WHILE,
+                 PLUS, MINUS, TIMES, TRUE, LT, LEQ, GT, GEQ, EQ, NEQ, COLON, SEMI,
+                 COMMA, SHARP, DOT, LP, RP, LB, RB, LSB, RSB, UMINUS;
+
+non terminal program;
+non terminal block_content;
+non terminal def;
+non terminal defs;
+non terminal type;
+non terminal stmt;
+non terminal stmts;
+non terminal expr;
+non terminal lvalue;
+non terminal binaryOp;
+non terminal unaryOp;
+
+/* Precendeces */
+precedence left LB, LSB;
+precedence right RB, RSB;
+precedence nonassoc ELSE;
+precedence right OR;
+precedence right AND;
+precedence nonassoc NOT;
+precedence left LEQ, LT, GT, GEQ, EQ, NEQ;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV, MOD;
+precedence left UMINUS;
+
+/*precedence nonassoc IF;*/
+
+/*Equals should be right associative*/
+
+start with program;
+
+program         ::= block_content:b                     /*{: SPL.setAST(new Program(b)); :}*/
+                ;
+
+block_content   ::= defs:dl stmts:sl                    /*{: RESULT = new BlockSt(dl,sl); :}*/
+                |   stmts:sl                            /*{: RESULT = new BlockSt(nil,sl); :}*/
+                ;
+
+def             ::= VAR ID LSB COLON TYPE RSB EQUAL expr:e69
+                | TYPE ID EQUAL TYPE
+                | DEF ID LP LSB ID COLON TYPE LB COMMA ID COLON TYPE RB RSB RP LSB COLON TYPE RSB LB block_content:b60 RB
+                ;
+
+defs            ::= DEF /*we need to change this to be a list of defs*/
+                ;
+
+type            ::= INT
+                | FLOAT
+                | STRING
+                | BOOLEAN
+                | ID
+                | ARRAY LSB type:t1 RSB
+                | LB ID COLON type:t2 LB COMMA ID COLON type:t3 RB RB
+                | LP LSB type:t3 LB COMMA type:t4 RB RSB RP
+                ;
+
+lvalue          ::= ID
+                | lvalue:l1 LSB expr:e99 RSB
+                | lvalue:l2 DOT ID
+                | lvalue:l3 SHARP INTEGER_LITERAL:n1
+                ;
+
+expr            ::= INTEGER_LITERAL:n                   /*{: RESULT = new IntConst(n); :}*/
+                | FLOAT_LITERAL:f1
+                | STRING_LITERAL:s1
+                | TRUE
+                | FALSE
+                | lvalue:l45
+                | unaryOp:u1 expr:e100
+                /*| expr:e101 binaryOp:b1 expr:e699*/
+                | ARRAY LP expr:e102 COMMA expr:e103 RP
+                | ID LP LSB expr:e103 LB COMMA expr:e104 RB RSB RP
+                | LB ID EQUAL expr:e104 LB COMMA ID EQUAL expr:e105 RB RB
+                | LP LSB expr:e106 LB COMMA expr:e107 RB RSB RP
+                | RSB expr:e108 LB COMMA expr:e109 RB RSB
+
+                /* Binary OPS */
+                | expr AND expr
+                | expr PLUS expr
+                | expr MINUS expr
+                | expr TIMES expr
+                | expr DIV expr
+                | expr MOD expr
+                | expr OR expr
+                | expr EQ expr
+                | expr NEQ expr
+                | expr LT expr
+                | expr LEQ expr
+                | expr GT expr
+                | expr GEQ expr
+                ;
+
+unaryOp         ::= MINUS %prec UMINUS
+                | NOT
+                ;
+
+/*binaryOp        ::= PLUS
+                | MINUS
+                | TIMES
+                | DIV
+                | MOD
+                | OR
+                | EQ
+                | NEQ
+                | LT
+                | LEQ
+                | GT
+                | GEQ
+                 ;*/
+
+stmt            ::= lvalue:l4 EQUAL expr:e3
+                |   ID LP LSB expr:e3 COMMA expr:e4 RB RSB RP
+                |   LB block_content:b1 RB
+                |   READ LP lvalue:l5 LB COMMA lvalue:l6 RB RP
+                |   PRINT LP LSB expr:e1 LB COMMA expr:e2 RB RSB
+                |   IF LP expr:e5 RP stmt:s1 LSB ELSE stmt:s2
+                |   FOR LP ID EQUAL expr:e6 TO LP expr:e7 LSB BY expr:e8 RSB RP stmt:s4
+                |   WHILE LP expr:e RP stmt:s           /*{: RESULT = new WhileSt(e,s); :}*/
+                |   LOOP stmt:s1
+                |   EXIT
+                |   RETURN LSB expr:e9 RSB
+                |   PRINT LP LSB expr:e1 LB COMMA expr:e2 RB RSB RP
+                ;
+stmts           ::= stmt:s SEMI                         /*{: RESULT = append(nil,s); :}*/
+                |   stmts:sl stmt:s SEMI                /*{: RESULT = append(sl,s); :}*/
+                ;
+
+/*| "print" "(" [ expr { "," expr } ] ")" */
