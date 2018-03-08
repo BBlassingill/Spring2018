@@ -103,8 +103,8 @@ non terminal binaryOp;
 non terminal unaryOp;
 
 /* Precendeces */
-precedence left LB, LSB;
-precedence right RB, RSB;
+precedence right LB, LSB, LP;
+precedence left RB, RSB, LSB;
 precedence nonassoc ELSE;
 precedence right OR;
 precedence right AND;
@@ -120,20 +120,29 @@ precedence left UMINUS;
 
 start with program;
 
-program         ::= block_content:b                     /*{: SPL.setAST(new Program(b)); :}*/
+program         ::= block_content                     /*{: SPL.setAST(new Program(b)); :}*/
                 ;
 
-block_content   ::= defs:dl stmts:sl                    /*{: RESULT = new BlockSt(dl,sl); :}*/
-                |   stmts:sl                            /*{: RESULT = new BlockSt(nil,sl); :}*/
+/*block_content   ::= defs stmts                    {: RESULT = new BlockSt(dl,sl); :}
+                |   stmts                            {: RESULT = new BlockSt(nil,sl); :}
+                ;*/
+
+block_content   ::= LB DEF SEMI RB stmt SEMI LB stmt SEMI RB
+                | defs stmts
+                | stmts
                 ;
 
-def             ::= VAR ID LSB COLON TYPE RSB EQUAL expr:e69
-                | TYPE ID EQUAL TYPE
-                | DEF ID LP LSB ID COLON TYPE LB COMMA ID COLON TYPE RB RSB RP LSB COLON TYPE RSB LB block_content:b60 RB
+def             ::= VAR ID LSB COLON type RSB EQUAL expr
+                | type ID EQUAL type
+                | DEF ID LP LSB ID COLON type LB COMMA ID COLON type RB RSB RP LSB COLON type RSB LB block_content RB
                 ;
 
-defs            ::= DEF /*we need to change this to be a list of defs*/
+defs            ::= defs def
+                |   DEF /* we need to change this to be a list of defs */
                 ;
+
+/*defs            ::= DEF
+                ;*/
 
 type            ::= INT
                 | FLOAT
@@ -151,9 +160,9 @@ lvalue          ::= ID
                 | lvalue:l3 SHARP INTEGER_LITERAL:n1
                 ;
 
-expr            ::= INTEGER_LITERAL:n                   /*{: RESULT = new IntConst(n); :}*/
-                | FLOAT_LITERAL:f1
-                | STRING_LITERAL:s1
+expr            ::= INTEGER_LITERAL                   /*{: RESULT = new IntConst(n); :}*/
+                | FLOAT_LITERAL
+                | STRING_LITERAL
                 | TRUE
                 | FALSE
                 | lvalue:l45
@@ -199,21 +208,21 @@ unaryOp         ::= MINUS %prec UMINUS
                 | GEQ
                  ;*/
 
-stmt            ::= lvalue:l4 EQUAL expr:e3
-                |   ID LP LSB expr:e3 COMMA expr:e4 RB RSB RP
-                |   LB block_content:b1 RB
-                |   READ LP lvalue:l5 LB COMMA lvalue:l6 RB RP
-                |   PRINT LP LSB expr:e1 LB COMMA expr:e2 RB RSB
-                |   IF LP expr:e5 RP stmt:s1 LSB ELSE stmt:s2
-                |   FOR LP ID EQUAL expr:e6 TO LP expr:e7 LSB BY expr:e8 RSB RP stmt:s4
-                |   WHILE LP expr:e RP stmt:s           /*{: RESULT = new WhileSt(e,s); :}*/
-                |   LOOP stmt:s1
+stmt            ::= lvalue EQUAL expr
+                |   ID LP LSB expr COMMA expr RB RSB RP
+                |   LB block_content RB
+                |   READ LP lvalue LB COMMA lvalue RB RP
+                |   PRINT LP LSB expr LB COMMA expr RB RSB RP
+                |   IF LP expr RP stmt LSB ELSE stmt
+                |   FOR LP ID EQUAL expr TO LP expr LSB BY expr RSB RP stmt
+                |   WHILE LP expr RP stmt           /*{: RESULT = new WhileSt(e,s); :}*/
+                |   LOOP stmt
                 |   EXIT
-                |   RETURN LSB expr:e9 RSB
-                |   PRINT LP LSB expr:e1 LB COMMA expr:e2 RB RSB RP
+                |   RETURN LSB expr RSB
+                /*|   PRINT LP LSB expr LB COMMA expr RB RSB RP*/
                 ;
-stmts           ::= stmt:s SEMI                         /*{: RESULT = append(nil,s); :}*/
-                |   stmts:sl stmt:s SEMI                /*{: RESULT = append(sl,s); :}*/
+stmts           ::= stmts stmt SEMI                /*{: RESULT = append(sl,s); :}*/
+                |   stmt SEMI                         /*{: RESULT = append(nil,s); :}*/
                 ;
 
 /*| "print" "(" [ expr { "," expr } ] ")" */
