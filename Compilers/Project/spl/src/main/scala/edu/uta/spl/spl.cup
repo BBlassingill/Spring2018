@@ -103,9 +103,9 @@ non terminal binaryOp;
 non terminal unaryOp;
 
 /* Precendeces */
+precedence nonassoc ELSE;
 precedence right LB, LSB, LP;
 precedence left RB, RSB, LSB;
-precedence nonassoc ELSE;
 precedence right OR;
 precedence right AND;
 precedence nonassoc NOT;
@@ -212,7 +212,9 @@ stmt            ::= lvalue EQUAL expr
                 |   ID LP LSB expr COMMA expr RB RSB RP
                 |   LB block_content RB
                 |   READ LP lvalue LB COMMA lvalue RB RP
-                |   PRINT LP LSB expr LB COMMA expr RB RSB RP
+                |   /*PRINT LP LSB expr LB COMMA expr RB RSB RP NEED TO GET THE CASE WHERE WE HAVE A LIST OF EXPRESSIONS DELIMITED BY A COMMA*/
+                |   PRINT LP expr RP
+                |   PRINT LP RP
                 |   IF LP expr RP stmt LSB ELSE stmt
                 |   FOR LP ID EQUAL expr TO LP expr LSB BY expr RSB RP stmt
                 |   WHILE LP expr RP stmt           /*{: RESULT = new WhileSt(e,s); :}*/
