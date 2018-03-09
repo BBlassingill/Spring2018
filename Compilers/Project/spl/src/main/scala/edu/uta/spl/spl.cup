@@ -92,18 +92,19 @@ terminal         AND, ARRAY, BOOLEAN, BY, DEF, DIV, ELSE, EQUAL, EXIT, FALSE,
 
 non terminal program;
 non terminal block_content;
-non terminal def;
 non terminal defs;
-non terminal type;
 non terminal stmt;
 non terminal stmts;
 non terminal expr;
 non terminal lvalue;
-non terminal binaryOp;
-non terminal unaryOp;
+non terminal type;
+non terminal def;
+non terminal expr_list;
+non terminal expr_list_element;
 
 /* Precendeces */
 precedence nonassoc ELSE;
+/*precedence right COMMA;*/
 precedence right LB, LSB, LP;
 precedence left RB, RSB, LSB;
 precedence right OR;
@@ -114,73 +115,46 @@ precedence left PLUS, MINUS;
 precedence left TIMES, DIV, MOD;
 precedence left UMINUS;
 
-/*precedence nonassoc IF;*/
-
-/*Equals should be right associative*/
-
 start with program;
 
-program         ::= block_content                     /*{: SPL.setAST(new Program(b)); :}*/
+program         ::= block_content:b
                 ;
 
-/*block_content   ::= defs stmts                    {: RESULT = new BlockSt(dl,sl); :}
-                |   stmts                            {: RESULT = new BlockSt(nil,sl); :}
-                ;*/
-
-block_content   ::= LB DEF SEMI RB stmt SEMI LB stmt SEMI RB
-                | defs stmts
-                | stmts
+block_content   ::= defs:dl stmts:sl
+                |   stmts:sl
                 ;
 
-def             ::= VAR ID LSB COLON type RSB EQUAL expr
-                | type ID EQUAL type
-                | DEF ID LP LSB ID COLON type LB COMMA ID COLON type RB RSB RP LSB COLON type RSB LB block_content RB
+def             ::= type ID EQUAL type
+                /*| VAR ID EQUAL expr */
+                /*|   ’def’ ID ’(’ [ ID ’:’ type { ’,’ ID ’:’ type } ] ’)’ [ ’:’ type ] ’{’ block ’}’*/
                 ;
 
-defs            ::= defs def
-                |   DEF /* we need to change this to be a list of defs */
-                ;
 
-/*defs            ::= DEF
-                ;*/
+defs            ::= DEF
+                ;
 
 type            ::= INT
                 | FLOAT
                 | STRING
                 | BOOLEAN
                 | ID
-                | ARRAY LSB type:t1 RSB
-                | LB ID COLON type:t2 LB COMMA ID COLON type:t3 RB RB
-                | LP LSB type:t3 LB COMMA type:t4 RB RSB RP
+                | ARRAY LSB type RSB
+                /*| LB ID COLON type RB */
+                /*| LP list of types RP */
                 ;
 
-lvalue          ::= ID
-                | lvalue:l1 LSB expr:e99 RSB
-                | lvalue:l2 DOT ID
-                | lvalue:l3 SHARP INTEGER_LITERAL:n1
+lvalue          ::= lvalue LSB expr RSB
+                | lvalue DOT ID
+                | lvalue SHARP INTEGER_LITERAL
+                | ID
                 ;
 
-expr            ::= INTEGER_LITERAL                   /*{: RESULT = new IntConst(n); :}*/
-                | FLOAT_LITERAL
-                | STRING_LITERAL
-                | TRUE
-                | FALSE
-                | lvalue:l45
-                | unaryOp:u1 expr:e100
-                /*| expr:e101 binaryOp:b1 expr:e699*/
-                | ARRAY LP expr:e102 COMMA expr:e103 RP
-                | ID LP LSB expr:e103 LB COMMA expr:e104 RB RSB RP
-                | LB ID EQUAL expr:e104 LB COMMA ID EQUAL expr:e105 RB RB
-                | LP LSB expr:e106 LB COMMA expr:e107 RB RSB RP
-                | RSB expr:e108 LB COMMA expr:e109 RB RSB
-
-                /* Binary OPS */
-                | expr AND expr
-                | expr PLUS expr
+expr            ::= expr PLUS expr
                 | expr MINUS expr
                 | expr TIMES expr
                 | expr DIV expr
                 | expr MOD expr
+                | expr AND expr
                 | expr OR expr
                 | expr EQ expr
                 | expr NEQ expr
@@ -188,43 +162,52 @@ expr            ::= INTEGER_LITERAL                   /*{: RESULT = new IntConst
                 | expr LEQ expr
                 | expr GT expr
                 | expr GEQ expr
+                | UMINUS expr
+                | NOT expr
+                | INTEGER_LITERAL
+                | FLOAT_LITERAL
+                | STRING_LITERAL
+                | TRUE
+                | FALSE
+                | lvalue
+                | ARRAY LP expr COMMA expr RP
+                | ID LP RP
+                /*| ID LP list of expr RP
+                | LB ID EQUAL expr RP
+                | LP list of expressions RP
+                | LSB expr list of expr RSB
+                | LSB expr RSB
+                */
                 ;
 
-unaryOp         ::= MINUS %prec UMINUS
-                | NOT
+expr_list       ::= expr_list expr_list_element
+                | expr_list expr
+                | expr_list_element
                 ;
 
-/*binaryOp        ::= PLUS
-                | MINUS
-                | TIMES
-                | DIV
-                | MOD
-                | OR
-                | EQ
-                | NEQ
-                | LT
-                | LEQ
-                | GT
-                | GEQ
-                 ;*/
+expr_list_element    ::= expr COMMA
+                     ;
 
 stmt            ::= lvalue EQUAL expr
-                |   ID LP LSB expr COMMA expr RB RSB RP
-                |   LB block_content RB
-                |   READ LP lvalue LB COMMA lvalue RB RP
-                |   /*PRINT LP LSB expr LB COMMA expr RB RSB RP NEED TO GET THE CASE WHERE WE HAVE A LIST OF EXPRESSIONS DELIMITED BY A COMMA*/
-                |   PRINT LP expr RP
-                |   PRINT LP RP
-                |   IF LP expr RP stmt LSB ELSE stmt
-                |   FOR LP ID EQUAL expr TO LP expr LSB BY expr RSB RP stmt
-                |   WHILE LP expr RP stmt           /*{: RESULT = new WhileSt(e,s); :}*/
-                |   LOOP stmt
-                |   EXIT
-                |   RETURN LSB expr RSB
-                /*|   PRINT LP LSB expr LB COMMA expr RB RSB RP*/
+                | ID LP RP
+                /*| ID list of expressions RP */
+                | LB block_content RB
+                | READ LP lvalue RP
+                /*| READ LP list of lvalue RP*/
+                | PRINT LP RP
+                | PRINT LP expr RP
+                | PRINT LP expr_list RP
+                | /*PRINT LP expr exprs RP*/
+                | IF LP expr RP stmt
+                | IF LP expr RP stmt ELSE stmt
+                | FOR LP ID EQUAL expr TO expr RP stmt
+                | FOR LP ID EQUAL expr TO expr BY expr RP stmt
+                | WHILE LP expr RP stmt
+                | LOOP stmt
+                | EXIT
+                | RETURN
+                | RETURN expr
                 ;
-stmts           ::= stmts stmt SEMI                /*{: RESULT = append(sl,s); :}*/
-                |   stmt SEMI                         /*{: RESULT = append(nil,s); :}*/
+stmts           ::= stmt:s SEMI
+                |   stmts:sl stmt:s SEMI
                 ;
-
-/*| "print" "(" [ expr { "," expr } ] ")" */
