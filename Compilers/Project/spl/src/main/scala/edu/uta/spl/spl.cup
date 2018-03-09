@@ -109,6 +109,10 @@ non terminal id_type_list;
 non terminal id_type_list_item;
 non terminal type_list;
 non terminal type_list_item;
+non terminal def_list;
+non terminal def_list_item;
+non terminal stmt_list;
+non terminal stmt_list_item;
 
 /* Precedences */
 precedence nonassoc ELSE;
@@ -130,16 +134,21 @@ program         ::= block_content:b
 
 block_content   ::= defs:dl stmts:sl
                 |   stmts:sl
+                |   def_list stmt SEMI stmt_list
                 ;
 
-def             ::= type ID EQUAL type
-                /*| VAR ID EQUAL expr */
-                /*|   ’def’ ID ’(’ [ ID ’:’ type { ’,’ ID ’:’ type } ] ’)’ [ ’:’ type ] ’{’ block ’}’*/
+def             ::= DEF ID LP RP LB block_content RB
+                | DEF ID LP ID COLON type id_type_list LB block_content RB
+                | DEF ID LP RP type_list LB block_content RB
+                | DEF ID LP ID COLON type id_type_list type_list LB block_content RB
+                | VAR ID EQUAL expr
+                | VAR ID type_list EQUAL expr
+                | type ID EQUAL type
                 ;
 
 
-defs            ::= DEF
-                ;
+/*defs            ::= DEF
+                ;*/
 
 type            ::= INT
                 | FLOAT
@@ -227,6 +236,22 @@ type_list       ::= type_list type_list_item
                 ;
 
 type_list_item  ::= type COMMA
+                ;
+
+def_list       ::= def_list def_list_item
+                | def_list def
+                | def_list_item
+                ;
+
+def_list_item  ::= def SEMI
+                ;
+
+stmt_list       ::= stmt_list stmt_list_item
+                | stmt_list def
+                | stmt_list_item
+                ;
+
+stmt_list_item  ::= stmt SEMI
                 ;
 
 stmt            ::= lvalue EQUAL expr
