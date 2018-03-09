@@ -105,8 +105,12 @@ non terminal lvalue_list;
 non terminal lvalue_list_item;
 non terminal id_expr_list;
 non terminal id_expr_list_item;
+non terminal id_type_list;
+non terminal id_type_list_item;
+non terminal type_list;
+non terminal type_list_item;
 
-/* Precendeces */
+/* Precedences */
 precedence nonassoc ELSE;
 /*precedence right COMMA;*/
 precedence right LB, LSB, LP;
@@ -143,8 +147,9 @@ type            ::= INT
                 | BOOLEAN
                 | ID
                 | ARRAY LSB type RSB
-                /*| LB ID COLON type RB */
-                /*| LP list of types RP */
+                | LB ID COLON type id_type_list RB
+                | LP RP
+                | LP type_list RP
                 ;
 
 lvalue          ::= lvalue LSB expr RSB
@@ -207,6 +212,22 @@ id_expr_list    ::= id_expr_list id_expr_list_item
 
 id_expr_list_item ::= ID EQUAL expr COMMA
                   ;
+
+id_type_list    ::= id_type_list id_type_list_item
+                | id_type_list ID COLON type
+                | id_type_list_item
+                ;
+
+id_type_list_item   ::= ID COLON type COMMA
+                    ;
+
+type_list       ::= type_list type_list_item
+                | type_list type
+                | type_list_item
+                ;
+
+type_list_item  ::= type COMMA
+                ;
 
 stmt            ::= lvalue EQUAL expr
                 | ID LP RP
