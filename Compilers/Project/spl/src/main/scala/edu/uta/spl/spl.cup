@@ -100,7 +100,9 @@ non terminal lvalue;
 non terminal type;
 non terminal def;
 non terminal expr_list;
-non terminal expr_list_element;
+non terminal expr_list_item;
+non terminal lvalue_list;
+non terminal lvalue_list_item;
 
 /* Precendeces */
 precedence nonassoc ELSE;
@@ -180,24 +182,30 @@ expr            ::= expr PLUS expr
                 */
                 ;
 
-expr_list       ::= expr_list expr_list_element
+expr_list       ::= expr_list expr_list_item
                 | expr_list expr
-                | expr_list_element
+                | expr_list_item
                 ;
 
-expr_list_element    ::= expr COMMA
-                     ;
+expr_list_item  ::= expr COMMA
+                ;
+
+lvalue_list     ::= lvalue_list lvalue_list_item
+                | lvalue_list lvalue
+                | lvalue_list_item
+                ;
+
+lvalue_list_item ::= lvalue COMMA
+                 ;
 
 stmt            ::= lvalue EQUAL expr
                 | ID LP RP
-                /*| ID list of expressions RP */
+                | ID LP expr_list RP
                 | LB block_content RB
-                | READ LP lvalue RP
-                /*| READ LP list of lvalue RP*/
+                | READ LP lvalue_list RP
                 | PRINT LP RP
                 | PRINT LP expr RP
                 | PRINT LP expr_list RP
-                | /*PRINT LP expr exprs RP*/
                 | IF LP expr RP stmt
                 | IF LP expr RP stmt ELSE stmt
                 | FOR LP ID EQUAL expr TO expr RP stmt
