@@ -103,6 +103,8 @@ non terminal expr_list;
 non terminal expr_list_item;
 non terminal lvalue_list;
 non terminal lvalue_list_item;
+non terminal id_expr_list;
+non terminal id_expr_list_item;
 
 /* Precendeces */
 precedence nonassoc ELSE;
@@ -174,12 +176,12 @@ expr            ::= expr PLUS expr
                 | lvalue
                 | ARRAY LP expr COMMA expr RP
                 | ID LP RP
-                /*| ID LP list of expr RP
-                | LB ID EQUAL expr RP
-                | LP list of expressions RP
-                | LSB expr list of expr RSB
-                | LSB expr RSB
-                */
+                | ID LP expr_list RP
+                | LB ID EQUAL expr id_expr_list RB
+                | LP RP
+                | LP expr_list RP
+                | LSB RSB
+                | LSB expr_list RSB
                 ;
 
 expr_list       ::= expr_list expr_list_item
@@ -197,6 +199,14 @@ lvalue_list     ::= lvalue_list lvalue_list_item
 
 lvalue_list_item ::= lvalue COMMA
                  ;
+
+id_expr_list    ::= id_expr_list id_expr_list_item
+                | id_expr_list ID EQUAL expr
+                | id_expr_list_item
+                ;
+
+id_expr_list_item ::= ID EQUAL expr COMMA
+                  ;
 
 stmt            ::= lvalue EQUAL expr
                 | ID LP RP
