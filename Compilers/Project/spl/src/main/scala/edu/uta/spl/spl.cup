@@ -116,7 +116,6 @@ non terminal stmt_list_item;
 
 /* Precedences */
 precedence nonassoc ELSE;
-/*precedence right COMMA;*/
 precedence right LB, LSB, LP;
 precedence left RB, RSB, LSB;
 precedence right OR;
@@ -142,14 +141,6 @@ def             ::= DEF ID LP RP LB block_content RB
                 | DEF ID LP ID COLON type RP COLON type LB block_content RB
                 | DEF ID LP id_type_list RP LB block_content RB
                 | DEF ID LP id_type_list RP COLON type LB block_content RB
-                /*  DEF ID LP RP LB block_content RB
-                | DEF ID LP ID COLON type id_type_list RP LB block_content RB
-                | DEF ID LP RP COLON type LB block_content RB
-                | DEF ID LP ID COLON type RP LB block_content RB
-                | DEF ID LP ID COLON type RP COLON type LB block_content RB
-                | DEF ID LP ID COLON type id_type_list COLON type LB block_content RB
-                | DEF ID LP id_type_list RP LB block_statement RB
-                | DEF ID LP id_type_list RP COLON type LB block_statement RB*/
                 | VAR ID EQUAL expr
                 | VAR ID COLON type EQUAL expr
                 | TYPE ID EQUAL type
