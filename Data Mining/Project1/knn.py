@@ -36,6 +36,9 @@ def euclideanDistance(testArray, trainingArray):
 
 
 def getNeighbors(testSet, trainingSet, k):
+	print(testSet)
+	print("*********************")
+	print(trainingSet)
 
 	for arr1 in testSet:
 		distance = []

@@ -5,7 +5,6 @@ import scipy.io as io
 import string
 
 def pickDataClass(filename, class_ids) :
-	
 	dataSubset = []
 	originalData = []
 
@@ -26,16 +25,13 @@ def pickDataClass(filename, class_ids) :
 
 	return dataSubset
 
-def splitData2TestTrain(filename, number_per_class, test_instances) :
+def splitData2TestTrain(originalData, number_per_class, test_instances) :
 	
-	originalData = []
-	with open(filename, 'r') as f:
-		reader = csv.reader(f, delimiter=',')
-		for row in reader:
-			originalData.append(row)
-
 	X = np.array(originalData[1:], dtype='int64').transpose()
 	Y = np.array(originalData[0:1]).transpose()
+
+	r,c = Y.shape
+	Y = Y.reshape(r,)
 
 	splitRatio = test_instances/number_per_class
 
@@ -72,11 +68,3 @@ def letter_2_digit_convert(charString) :
 		resultArray.append(string.ascii_lowercase.index(char) + 1)
 
 	return resultArray
-
-# def main() :
-# 	subsetData = pickDataClass('ATNT50/trainDataXY.txt', [1, 3])
-# 	X_train, y_train, X_test, y_test = splitData2TestTrain('ATNT50/trainDataXY.txt', 9, 5)
-# 	storeTrainXTrainY(X_train, y_train, X_test, y_test, "matlab")
-# 	letter_2_digit_convert("ACFG")
-
-# main()	
