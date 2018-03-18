@@ -4,7 +4,7 @@ import math
 import operator
 
 
-class KNNClassifier(BaseEstimator, ClassifierMixin):
+class CustomKNNClassifier(BaseEstimator, ClassifierMixin):
 	def __init__(self, neighbors=0):
 		self.neighbors = neighbors
 
@@ -41,7 +41,7 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
 		currentIndex = 0
 		number_of_class_labels = X_test.shape[0]
 		
-		knn = []
+		labels = []
 		for testVector in X_test:
 			distance = []
 			
@@ -55,6 +55,6 @@ class KNNClassifier(BaseEstimator, ClassifierMixin):
 			nearestNeighborDistances = distance[:self.neighbors]
 			
 			classLabel = self._findClassLabel(nearestNeighborDistances)
-			knn.append(classLabel)
+			labels.append(classLabel)
 			
-		return knn
+		return labels
