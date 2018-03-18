@@ -35,15 +35,28 @@ Ytrain = np.array(Ytrain, dtype='int64')
 Ytest = [1,4,5,2,3]
 Ytest = np.array(Ytest, dtype='int64')
 
+print(A_train.shape)
+print(A_test.shape)
+print("**")
+print(Xtrain.shape)
+print(Xtest.shape)
+
 Xtrain_padding = np.row_stack((Xtrain,A_train))
 Xtest_padding = np.row_stack((Xtest,A_test))
-Xtrain_padding.dtype = 'int64'
-Xtest_padding.dtype = 'int64'
+# Xtrain_padding.dtype = 'int64'
+# Xtest_padding.dtype = 'int64'
 
 B_padding = np.dot(np.linalg.pinv(Xtrain_padding.T), Ytrain.T)   # (XX')^{-1} X  * Y'  #Ytrain : indicator matrix
 Ytest_padding = np.dot(B_padding.T,Xtest_padding)
+print("Ytest_padding")
+print(Ytest_padding)
+Ytest_padding = np.round(Ytest_padding)
+print(Ytest_padding)
+print("Ytest_padding_argmax")
 Ytest_padding_argmax = np.argmax(Ytest_padding,axis=0)+1
 err_test_padding = Ytest - Ytest_padding_argmax
+print("err_test_padding")
+print(err_test_padding)
 TestingAccuracy_padding = (1-np.nonzero(err_test_padding)[0].size/len(err_test_padding))*100
 
 print(str(TestingAccuracy_padding))
