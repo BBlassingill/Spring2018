@@ -65,14 +65,7 @@ def main():
 	model = model.fit(X_train, y_train)
 	predicted_labels = model.predict(X_test)
 	print("\tSVM: " + str(predicted_labels))  
-	# scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
-	# print("5 Fold Accura"scores)
-
-	# print(X_train)
-	# print("\n")
-	# print(X_test)
-	# print(X_train.shape)
-	# print(X_test.shape)
+	
 	##Task B
 
 	##Task C
