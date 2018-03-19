@@ -27,7 +27,7 @@ def pickDataClass(filename, class_ids) :
 def splitData2TestTrain(originalData, number_per_class, test_instances) :
 
 	num_of_classes = int(originalData.shape[0]/number_per_class)
-	hashMap = dict.fromkeys(list(range(1, num_of_classes+1)), 0)
+	hashMap = dict.fromkeys(set(originalData.T[0:1].flatten()), 0)
 
 	X_train = []
 	y_train = []
@@ -36,6 +36,8 @@ def splitData2TestTrain(originalData, number_per_class, test_instances) :
 
 	for row in originalData:
 		label = row[0]
+
+		
 
 		if hashMap[label] >= test_instances :
 			X_train.append(row)
