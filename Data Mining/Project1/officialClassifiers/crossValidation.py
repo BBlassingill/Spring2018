@@ -11,8 +11,6 @@ import LinearRegression as linear
 #run the cross fold validation on each of the classifiers and save the accuracy results
 
 def main():
-	subsetData = dh.pickDataClass('trainDataXY.txt', [1, 2, 3, 4, 5])
-	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 9, 2)
 
 	##################################### KNN
 
@@ -66,9 +64,29 @@ def main():
 	predicted_labels = model.predict(X_test)
 	print("\tSVM: " + str(predicted_labels))  
 	
-	##Task B
+	#####Task B
+	subsetData = dh.pickDataClass('ATNTFaceImages400.txt', list(range(1, 41)))	
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 10, 5)
 
-	##Task C
+	print("\nTask B reported accuracies:")
 
-	##Task D
+	model = knn.CustomKNNClassifier(neighbors=2)
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	print("\tKNN: " + str(scores) + " Average: " + str(np.mean(scores)))
+
+	model = centroid.CustomCentroidClassifier()
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	print("\tCentroid: " + str(scores) + " Average: " + str(np.mean(scores)))
+
+	model = linear.LinearRegression()
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	print("\tLinear Regression: " + str(scores) + " Average: " + str(np.mean(scores)))
+
+	model = svm.SVC(kernel='linear')
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	print("\tSVM: " + str(scores) + " Average: " + str(np.mean(scores)))
+
+	#####Task C
+
+	#####Task D
 main()	

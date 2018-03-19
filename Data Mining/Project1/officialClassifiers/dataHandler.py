@@ -14,41 +14,50 @@ def pickDataClass(filename, class_ids) :
 			originalData.append(row)
 
 	X = np.array(originalData, dtype='int64')
-	# print("original data")
-	# print(X)
-	# print("original data shape")
-	# print(X.shape)
 	X = X.transpose()
-	# print("After transpose")
-	# print(X)
+
 	for row in X:
 		if row[0] in class_ids:
 			dataSubset.append(row)
 
 	X = np.array(dataSubset, dtype='int64')
-	# dataSubset = X.transpose()
-
-	# print("final subset")
-	# print(dataSubset)
-	# print(dataSubset.shape)	
 
 	return X
 
 def splitData2TestTrain(originalData, number_per_class, test_instances) :
-	
-	X_transposed = originalData.transpose()
 
-	X = np.array(X_transposed[1:], dtype='int64').transpose()
-	Y = np.array(X_transposed[0:1], dtype='int64').transpose()
+	num_of_classes = int(originalData.shape[0]/number_per_class)
+	hashMap = dict.fromkeys(list(range(1, num_of_classes+1)), 0)
 
-	r,c = Y.shape
-	Y = Y.reshape(r,)
+	X_train = []
+	y_train = []
+	X_test = []
+	y_test = []
 
-	# splitRatio = test_instances/number_per_class
+	for row in originalData:
+		label = row[0]
 
-	number_of_training_instances = number_per_class - test_instances
+		if hashMap[label] >= test_instances :
+			X_train.append(row)
 
-	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = test_instances, train_size = number_of_training_instances)
+		else :
+			hashMap[label] += 1
+			X_test.append(row)
+
+
+	X_train_original = np.array(X_train)
+	X_test_original = np.array(X_test)
+
+	x_train_transpose = X_train_original.transpose()
+	x_test_transpose = X_test_original.transpose()
+
+	X_train = x_train_transpose[1:].transpose()
+	y_train = x_train_transpose[0:1].transpose()
+	X_test = x_test_transpose[1:].transpose()
+	y_test = x_test_transpose[0:1].transpose() 
+
+	y_train = y_train.reshape(y_train.shape[0])
+	y_test = y_test.reshape(y_test.shape[0])
 
 	return X_train, y_train, X_test, y_test
 
