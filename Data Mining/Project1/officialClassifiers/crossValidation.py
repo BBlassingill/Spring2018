@@ -12,18 +12,18 @@ import LinearRegression as linear
 
 def main():
 	subsetData = dh.pickDataClass('trainDataXY.txt', [1, 2, 3, 4, 5])
-	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 9, 5)
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 9, 2)
 
 	##################################### KNN
 
 	# model = knn.CustomKNNClassifier(neighbors=2)
-	# scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	# scores = cross_val_score(model, X_train, y_train, cv=2, scoring="accuracy")
 	# print(scores)
 
 	##################################### Centroid
 
 	# model = centroid.CustomCentroidClassifier()
-	# scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	# scores = cross_val_score(model, X_train, y_train, cv=2, scoring="accuracy")
 	# print(scores)
 
 
@@ -37,4 +37,45 @@ def main():
 	# model = svm.SVC(kernel='linear')
 	# scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
 	# print(scores)
+
+
+	#####Task A
+	letter_to_digit_array = dh.letter_2_digit_convert("ABCDE")
+	subsetData = dh.pickDataClass('HandWrittenLetters.txt', letter_to_digit_array)
+	
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 9)
+	print("Task A predicted labels:")
+	
+	model = knn.CustomKNNClassifier(neighbors=2)
+	model = model.fit(X_train, y_train)
+	predicted_labels = model.predict(X_test)
+	print("\tKNN: " + str(predicted_labels))
+
+	model = centroid.CustomCentroidClassifier()
+	model = model.fit(X_train, y_train)
+	predicted_labels = model.predict(X_test)
+	print("\tCentroid: " + str(predicted_labels))
+
+	model = linear.LinearRegression()
+	model = model.fit(X_train, y_train)
+	predicted_labels = model.predict(X_test)
+	print("\tLinear Regression: " + str(predicted_labels))
+
+	model = svm.SVC(kernel='linear')
+	model = model.fit(X_train, y_train)
+	predicted_labels = model.predict(X_test)
+	print("\tSVM: " + str(predicted_labels))  
+	# scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	# print("5 Fold Accura"scores)
+
+	# print(X_train)
+	# print("\n")
+	# print(X_test)
+	# print(X_train.shape)
+	# print(X_test.shape)
+	##Task B
+
+	##Task C
+
+	##Task D
 main()	

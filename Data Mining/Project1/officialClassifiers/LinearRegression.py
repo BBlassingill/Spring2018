@@ -22,4 +22,5 @@ class LinearRegression(BaseEstimator, ClassifierMixin):
 		B_padding = np.dot(np.linalg.pinv(Xtrain_padding), self.Ytrain)
 		Ytest_padding = np.dot(B_padding, Xtest_padding.T)
 
-		return np.round(Ytest_padding)
+		rounded_answer = np.array(np.round(Ytest_padding), dtype='int64')
+		return rounded_answer

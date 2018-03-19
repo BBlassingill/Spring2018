@@ -20,8 +20,6 @@ class CustomCentroidClassifier(BaseEstimator, ClassifierMixin):
 			hashMap[label] += (index,)
 			index+=1
 
-		print(hashMap)
-
 		for key in hashMap:
 			list_of_indeces = hashMap[key]
 

@@ -14,28 +14,41 @@ def pickDataClass(filename, class_ids) :
 			originalData.append(row)
 
 	X = np.array(originalData, dtype='int64')
+	# print("original data")
+	# print(X)
+	# print("original data shape")
+	# print(X.shape)
 	X = X.transpose()
-
+	# print("After transpose")
+	# print(X)
 	for row in X:
 		if row[0] in class_ids:
 			dataSubset.append(row)
 
 	X = np.array(dataSubset, dtype='int64')
-	dataSubset = X.transpose()	
+	# dataSubset = X.transpose()
 
-	return dataSubset
+	# print("final subset")
+	# print(dataSubset)
+	# print(dataSubset.shape)	
+
+	return X
 
 def splitData2TestTrain(originalData, number_per_class, test_instances) :
 	
-	X = np.array(originalData[1:], dtype='int64').transpose()
-	Y = np.array(originalData[0:1]).transpose()
+	X_transposed = originalData.transpose()
+
+	X = np.array(X_transposed[1:], dtype='int64').transpose()
+	Y = np.array(X_transposed[0:1], dtype='int64').transpose()
 
 	r,c = Y.shape
 	Y = Y.reshape(r,)
 
-	splitRatio = test_instances/number_per_class
+	# splitRatio = test_instances/number_per_class
 
-	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = splitRatio)
+	number_of_training_instances = number_per_class - test_instances
+
+	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = test_instances, train_size = number_of_training_instances)
 
 	return X_train, y_train, X_test, y_test
 

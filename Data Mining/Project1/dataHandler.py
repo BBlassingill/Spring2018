@@ -37,6 +37,18 @@ def splitData2TestTrain(filename, number_per_class, test_instances) :
 	X = np.array(originalData[1:], dtype='int64').transpose()
 	Y = np.array(originalData[0:1]).transpose()
 
+	X = np.array(originalData[1:], dtype='int64')
+	Y = np.array(originalData[0:1])
+
+	print(X)
+	print(Y)
+
+	X = X.transpose()
+	Y = Y.transpose()
+
+	print(X)
+	print(Y)
+
 	splitRatio = test_instances/number_per_class
 
 	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = splitRatio)
@@ -73,10 +85,10 @@ def letter_2_digit_convert(charString) :
 
 	return resultArray
 
-# def main() :
-# 	subsetData = pickDataClass('ATNT50/trainDataXY.txt', [1, 3])
-# 	X_train, y_train, X_test, y_test = splitData2TestTrain('ATNT50/trainDataXY.txt', 9, 5)
-# 	storeTrainXTrainY(X_train, y_train, X_test, y_test, "matlab")
-# 	letter_2_digit_convert("ACFG")
+def main() :
+	subsetData = pickDataClass('ATNT50/trainDataXY.txt', [1])
+	X_train, y_train, X_test, y_test = splitData2TestTrain('ATNT50/trainDataXY.txt', 9, 5)
+	# storeTrainXTrainY(X_train, y_train, X_test, y_test, "matlab")
+	# letter_2_digit_convert("ACFG")
 
-# main()	
+main()	
