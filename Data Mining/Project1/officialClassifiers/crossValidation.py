@@ -12,7 +12,6 @@ def taskA():
 	subsetData = dh.pickDataClass('HandWrittenLetters.txt', letter_to_digit_array)
 	
 	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 9)
-	print(y_test)
 	print("Task A predicted labels:")
 	
 	model = knn.CustomKNNClassifier(neighbors=2)
