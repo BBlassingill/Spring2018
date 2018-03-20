@@ -12,6 +12,7 @@ def taskA():
 	subsetData = dh.pickDataClass('HandWrittenLetters.txt', letter_to_digit_array)
 	
 	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 9)
+	print(y_test)
 	print("Task A predicted labels:")
 	
 	model = knn.CustomKNNClassifier(neighbors=2)
@@ -61,7 +62,7 @@ def taskB():
 	print("\tSVM: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
 
 
-def taskC():
+def taskCAndD():
 	letter_to_digit_array = dh.letter_2_digit_convert("ABCDEFGHIJ")
 	subsetData = dh.pickDataClass('HandWrittenLetters.txt', letter_to_digit_array)
 	model = centroid.CustomCentroidClassifier()
@@ -72,6 +73,53 @@ def taskC():
 
 	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
 	scores = np.round(scores, 2)	
+	print("\tCentroid Split 1: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 29)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
+	print("\tCentroid Split 2: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 24)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
+	print("\tCentroid Split 3: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 19)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
+	print("\tCentroid Split 4: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 24)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
+	print("\tCentroid Split 5: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 9)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
+	print("\tCentroid Split 6: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 4)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
+	print("\tCentroid Split 7: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
+
+	letter_to_digit_array = dh.letter_2_digit_convert("QWERTYUIOP")
+	subsetData = dh.pickDataClass('HandWrittenLetters.txt', letter_to_digit_array)
+
+	print("\nTask D Centroid Splits")
+
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 34)
+
+	scores = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+	scores = np.round(scores, 2)
 	print("\tCentroid Split 1: " + str(scores) + " Average: " + str((np.round(np.mean(scores), 2))))
 
 	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(subsetData, 39, 29)
@@ -164,7 +212,6 @@ def main():
 
 	taskA()
 	taskB()
-	taskC()
-	taskD()
+	taskCAndD()
 
 main()	
