@@ -67,7 +67,9 @@ plt.title('K-Means Clustering\n')
 
 
 plt.scatter(X_new[:,0], X_new[:,1], color=cluster_assignments, s=20)
-# plt.show()
+centers = k_means.cluster_centers_
+plt.scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5);
+plt.show()
 
 
 #Computer Confusion Matrix
