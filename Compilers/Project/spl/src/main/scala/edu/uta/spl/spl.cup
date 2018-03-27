@@ -128,11 +128,11 @@ precedence left UMINUS;
 
 start with program;
 
-program         ::= block_content:b
+program         ::= block_content:b /*{: SPL.setAST(new Program(b));  :}*/
                 ;
 
-block_content   ::= def_list stmt_list
-                | stmt_list
+block_content   ::= def_list:d stmt_list:s /*{: RESULT = new BlockSt(d, s); :}*/
+                | stmt_list:s /*{: RESULT = new BlockSt(nil, s); :}*/
                 ;
 
 def             ::= DEF ID LP RP LB block_content RB
@@ -141,7 +141,7 @@ def             ::= DEF ID LP RP LB block_content RB
                 | DEF ID LP ID COLON type RP COLON type LB block_content RB
                 | DEF ID LP id_type_list RP LB block_content RB
                 | DEF ID LP id_type_list RP COLON type LB block_content RB
-                | VAR ID EQUAL expr
+                | VAR ID:i EQUAL expr:expr1 /*{: RESULT = new VarDef(i, new AnyType(), expr1); :}*/
                 | VAR ID COLON type EQUAL expr
                 | TYPE ID EQUAL type
                 ;
@@ -163,10 +163,10 @@ type            ::= INT
 lvalue          ::= lvalue LSB expr RSB
                 | lvalue DOT ID
                 | lvalue SHARP INTEGER_LITERAL
-                | ID
+                | ID:id {:  RESULT = new Var(id); :} /*{: System.out.println(id); :}*/
                 ;
 
-expr            ::= expr PLUS expr
+expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2); :}
                 | expr MINUS expr
                 | expr TIMES expr
                 | expr DIV expr
@@ -181,12 +181,12 @@ expr            ::= expr PLUS expr
                 | expr GEQ expr
                 | MINUS expr %prec UMINUS
                 | NOT expr
-                | INTEGER_LITERAL
+                | INTEGER_LITERAL:i {: RESULT = new IntConst(i); :}
                 | FLOAT_LITERAL
                 | STRING_LITERAL
                 | TRUE
                 | FALSE
-                | lvalue
+                | lvalue:l {: RESULT =  new LvalExp(l); :} /*{: System.out.println(l); :}*/
                 | ARRAY LP expr COMMA expr RP
                 | ID LP RP
                 | ID LP expr RP
@@ -199,7 +199,7 @@ expr            ::= expr PLUS expr
                 | LSB expr_list RSB
                 ;
 
-stmt            ::= lvalue EQUAL expr
+stmt            ::= lvalue:lv EQUAL expr:e1 /*{: RESULT = new AssignSt(lv, e1); :}*/ {: System.out.println(e1); :}
                 | ID LP RP
                 | ID LP expr RP
                 | ID LP expr_list RP
@@ -268,10 +268,10 @@ def_list       ::= def_list def_list_item
 def_list_item  ::= def SEMI
                 ;
 
-stmt_list       ::= stmt_list stmt_list_item
+stmt_list       ::= stmt_list:s1 stmt_list_item:s2 /*{: RESULT = append(s1, s2); :}*/ /*{: System.out.println("Test"); :}*/
                 | stmt_list def
-                | stmt_list_item
+                | stmt_list_item:si {: RESULT = append(nil, si); :} /*{: System.out.println("Test"); :} */
                 ;
 
-stmt_list_item  ::= stmt SEMI
+stmt_list_item  ::= stmt:s SEMI {: RESULT = s; :}
                 ;
