@@ -90,29 +90,29 @@ terminal         AND, ARRAY, BOOLEAN, BY, DEF, DIV, ELSE, EQUAL, EXIT, FALSE,
                  PLUS, MINUS, TIMES, TRUE, LT, LEQ, GT, GEQ, EQ, NEQ, COLON, SEMI,
                  COMMA, SHARP, DOT, LP, RP, LB, RB, LSB, RSB, UMINUS;
 
-non terminal program;
-non terminal block_content;
+non terminal Program program;
+non terminal BlockSt block_content;
 non terminal defs;
-non terminal stmt;
+non terminal Stmt stmt;
 non terminal stmts;
-non terminal expr;
-non terminal lvalue;
-non terminal type;
-non terminal def;
-non terminal expr_list;
+non terminal Expr expr;
+non terminal Lvalue lvalue;
+non terminal Type type;
+non terminal Definition def;
+non terminal List<Expr> expr_list;
 non terminal expr_list_item;
-non terminal lvalue_list;
-non terminal lvalue_list_item;
+non terminal List<Lvalue> lvalue_list;
+non terminal Lvalue lvalue_list_item;
 non terminal id_expr_list;
 non terminal id_expr_list_item;
-non terminal id_type_list;
-non terminal id_type_list_item;
-non terminal type_list;
+non terminal List<Bind<Type>> id_type_list;
+non terminal Bind<Type> id_type_list_item;
+non terminal List<Type> type_list;
 non terminal type_list_item;
-non terminal def_list;
+non terminal List<Definition> def_list;
 non terminal def_list_item;
-non terminal stmt_list;
-non terminal stmt_list_item;
+non terminal List<Stmt> stmt_list;
+non terminal Stmt stmt_list_item;
 
 /* Precedences */
 precedence nonassoc ELSE;
@@ -128,11 +128,11 @@ precedence left UMINUS;
 
 start with program;
 
-program         ::= block_content:b /*{: SPL.setAST(new Program(b));  :}*/
+program         ::= block_content:b {: SPL.setAST(new Program(b));  :}
                 ;
 
-block_content   ::= def_list:d stmt_list:s /*{: RESULT = new BlockSt(d, s); :}*/
-                | stmt_list:s /*{: RESULT = new BlockSt(nil, s); :}*/
+block_content   ::= def_list:d stmt_list:s {: RESULT = new BlockSt(d, s); :}
+                | stmt_list:s {: RESULT = new BlockSt(nil, s); :}
                 ;
 
 def             ::= DEF ID LP RP LB block_content RB
@@ -146,24 +146,24 @@ def             ::= DEF ID LP RP LB block_content RB
                 | TYPE ID EQUAL type
                 ;
 
-type            ::= INT
-                | FLOAT
-                | STRING
-                | BOOLEAN
-                | ID
-                | ARRAY
-                | ARRAY LSB type RSB
-                | LB ID COLON type RB
-                | LB id_type_list RB
-                | LP RP
-                | LP type RP
-                | LP type_list RP
+type            ::= INT {: RESULT = new IntType(); :}
+                | FLOAT {: RESULT = new FloatType(); :}
+                | STRING {: RESULT = new StringType(); :}
+                | BOOLEAN {: RESULT = new BooleanType(); :}
+                | ID:i {: RESULT = new NamedType(i); :}
+                | ARRAY {: RESULT = new ArrayType(new AnyType()); :}
+                | ARRAY LSB type:t RSB {: RESULT = new ArrayType(t); :}
+                | LB ID:i COLON type:t RB {: RESULT = new RecordType(add(new Bind<Type>(i, t), nil)); :}
+                | LB id_type_list:itl RB {: RESULT = new RecordType(itl); :}
+                | LP RP {: RESULT = new TupleType(nil); :}
+                | LP type:t RP {: RESULT = new TupleType(add(t, nil)); :}
+                | LP type_list:tl RP {: RESULT = new TupleType(tl); :}
                 ;
 
 lvalue          ::= lvalue LSB expr RSB
                 | lvalue DOT ID
                 | lvalue SHARP INTEGER_LITERAL
-                | ID:id {:  RESULT = new Var(id); :} /*{: System.out.println(id); :}*/
+                | ID:id {:  RESULT = new Var(id); :}
                 ;
 
 expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2); :}
@@ -183,10 +183,10 @@ expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2
                 | NOT expr
                 | INTEGER_LITERAL:i {: RESULT = new IntConst(i); :}
                 | FLOAT_LITERAL
-                | STRING_LITERAL
+                | STRING_LITERAL:s {: RESULT = new StringConst(s); :}
                 | TRUE
                 | FALSE
-                | lvalue:l {: RESULT =  new LvalExp(l); :} /*{: System.out.println(l); :}*/
+                | lvalue:l {: RESULT =  new LvalExp(l); :}
                 | ARRAY LP expr COMMA expr RP
                 | ID LP RP
                 | ID LP expr RP
@@ -199,7 +199,7 @@ expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2
                 | LSB expr_list RSB
                 ;
 
-stmt            ::= lvalue:lv EQUAL expr:e1 /*{: RESULT = new AssignSt(lv, e1); :}*/ {: System.out.println(e1); :}
+stmt            ::= lvalue:lv EQUAL expr:e1 {: RESULT = new AssignSt(lv, e1); :}
                 | ID LP RP
                 | ID LP expr RP
                 | ID LP expr_list RP
@@ -207,8 +207,8 @@ stmt            ::= lvalue:lv EQUAL expr:e1 /*{: RESULT = new AssignSt(lv, e1); 
                 | READ LP lvalue RP
                 | READ LP lvalue_list RP
                 | PRINT LP RP
-                | PRINT LP expr RP
-                | PRINT LP expr_list RP
+                | PRINT LP expr:e RP {: RESULT = new PrintSt(add(e, nil)); :}
+                | PRINT LP expr_list:el RP {: RESULT = new PrintSt(el); :}
                 | IF LP expr RP stmt
                 | IF LP expr RP stmt ELSE stmt
                 | FOR LP ID EQUAL expr TO expr RP stmt
@@ -245,11 +245,14 @@ id_expr_list_item ::= ID EQUAL expr COMMA
                   ;
 
 id_type_list    ::= id_type_list id_type_list_item
-                | id_type_list ID COLON type
-                | id_type_list_item
+                | id_type_list:tl ID:i COLON type:t /*{:
+                    l1 = add(i, nil);
+                    l1 = append(l1, ":");
+                    RESULT = append(tl, nil); :}*/
+                | id_type_list_item:i {: RESULT = add(i, nil); :}
                 ;
 
-id_type_list_item   ::= ID COLON type COMMA
+id_type_list_item   ::= ID:i COLON type:t COMMA {: RESULT = new Bind<Type>(i, t); :}
                     ;
 
 type_list       ::= type_list type_list_item
@@ -268,7 +271,7 @@ def_list       ::= def_list def_list_item
 def_list_item  ::= def SEMI
                 ;
 
-stmt_list       ::= stmt_list:s1 stmt_list_item:s2 /*{: RESULT = append(s1, s2); :}*/ /*{: System.out.println("Test"); :}*/
+stmt_list       ::= stmt_list:s1 stmt_list_item:s2 {: RESULT = append(s1, s2); :} /*{: System.out.println("Test"); :}*/
                 | stmt_list def
                 | stmt_list_item:si {: RESULT = append(nil, si); :} /*{: System.out.println("Test"); :} */
                 ;
