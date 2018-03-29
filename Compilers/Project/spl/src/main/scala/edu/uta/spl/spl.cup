@@ -100,17 +100,17 @@ non terminal Lvalue lvalue;
 non terminal Type type;
 non terminal Definition def;
 non terminal List<Expr> expr_list;
-non terminal expr_list_item;
+non terminal Expr expr_list_item;
 non terminal List<Lvalue> lvalue_list;
 non terminal Lvalue lvalue_list_item;
-non terminal id_expr_list;
-non terminal id_expr_list_item;
+non terminal List<Bind<Expr>> id_expr_list;
+non terminal Bind<Expr> id_expr_list_item;
 non terminal List<Bind<Type>> id_type_list;
 non terminal Bind<Type> id_type_list_item;
 non terminal List<Type> type_list;
-non terminal type_list_item;
+non terminal Type type_list_item;
 non terminal List<Definition> def_list;
-non terminal def_list_item;
+non terminal Definition def_list_item;
 non terminal List<Stmt> stmt_list;
 non terminal Stmt stmt_list_item;
 
@@ -135,15 +135,15 @@ block_content   ::= def_list:d stmt_list:s {: RESULT = new BlockSt(d, s); :}
                 | stmt_list:s {: RESULT = new BlockSt(nil, s); :}
                 ;
 
-def             ::= DEF ID LP RP LB block_content RB
-                | DEF ID LP RP COLON type LB block_content RB
-                | DEF ID LP ID COLON type RP LB block_content RB
-                | DEF ID LP ID COLON type RP COLON type LB block_content RB
-                | DEF ID LP id_type_list RP LB block_content RB
-                | DEF ID LP id_type_list RP COLON type LB block_content RB
-                | VAR ID:i EQUAL expr:expr1 /*{: RESULT = new VarDef(i, new AnyType(), expr1); :}*/
-                | VAR ID COLON type EQUAL expr
-                | TYPE ID EQUAL type
+def             ::= DEF ID:i LP RP LB block_content:b RB {: RESULT = new FuncDef(i, nil, new AnyType(), b); :}
+                | DEF ID:i LP RP COLON type:t LB block_content:b RB {: RESULT = new FuncDef(i, nil, t, b); :}
+                | DEF ID:i1 LP ID:i2 COLON type:t RP LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t)), new AnyType(), b); :}
+                | DEF ID:i1 LP ID:i2 COLON type:t1 RP COLON type:t2 LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t1)), t2, b); :}
+                | DEF ID:i1 LP id_type_list:idl RP LB block_content:b RB {: RESULT = new FuncDef(i1, idl, new AnyType(), b); :}
+                | DEF ID:il LP id_type_list:idl RP COLON type:t LB block_content:b RB {: RESULT = new FuncDef(il, idl, t, b); :}
+                | VAR ID:i EQUAL expr:expr1 {: RESULT = new VarDef(i, new AnyType(), expr1); :}
+                | VAR ID:i COLON type:t EQUAL expr:e {: RESULT = new VarDef(i, t, e); :}
+                | TYPE ID:i EQUAL type:t {: RESULT = new TypeDef(i, t); :}
                 ;
 
 type            ::= INT {: RESULT = new IntType(); :}
@@ -160,43 +160,43 @@ type            ::= INT {: RESULT = new IntType(); :}
                 | LP type_list:tl RP {: RESULT = new TupleType(tl); :}
                 ;
 
-lvalue          ::= lvalue LSB expr RSB
-                | lvalue DOT ID
-                | lvalue SHARP INTEGER_LITERAL
-                | ID:id {:  RESULT = new Var(id); :}
+lvalue          ::= lvalue:l LSB expr:e RSB {: RESULT = new ArrayDeref(new LvalExp(l), e); :}
+                | lvalue:l DOT ID:i {: RESULT = new RecordDeref(new LvalExp(l), i); :}
+                | lvalue:l SHARP INTEGER_LITERAL:i {: RESULT = new TupleDeref(new LvalExp(l), i); :}
+                | ID:id {: RESULT = new Var(id); :}
                 ;
 
 expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2); :}
-                | expr MINUS expr
-                | expr TIMES expr
-                | expr DIV expr
-                | expr MOD expr
-                | expr AND expr
-                | expr OR expr
-                | expr EQ expr
-                | expr NEQ expr
-                | expr LT expr
-                | expr LEQ expr
-                | expr GT expr
-                | expr GEQ expr
-                | MINUS expr %prec UMINUS
-                | NOT expr
+                | expr:e1 MINUS expr:e2 {: RESULT = new BinOpExp("minus", e1, e2); :}
+                | expr:e1 TIMES expr:e2 {: RESULT = new BinOpExp("times", e1, e2); :}
+                | expr:e1 DIV expr:e2 {: RESULT = new BinOpExp("div", e1, e2); :}
+                | expr:e1 MOD expr:e2 {: RESULT = new BinOpExp("mod", e1, e2); :}
+                | expr:e1 AND expr:e2 {: RESULT = new BinOpExp("and", e1, e2); :}
+                | expr:e1 OR expr:e2 {: RESULT = new BinOpExp("or", e1, e2); :}
+                | expr:e1 EQ expr:e2 {: RESULT = new BinOpExp("eq", e1, e2); :}
+                | expr:e1 NEQ expr:e2 {: RESULT = new BinOpExp("neq", e1, e2); :}
+                | expr:e1 LT expr:e2 {: RESULT = new BinOpExp("lt", e1, e2); :}
+                | expr:e1 LEQ expr:e2 {: RESULT = new BinOpExp("leq", e1, e2); :}
+                | expr:e1 GT expr:e2 {: RESULT = new BinOpExp("gt", e1, e2); :}
+                | expr:e1 GEQ expr:e2 {: RESULT = new BinOpExp("geq", e1, e2); :}
+                | MINUS expr:e1 {: RESULT = new UnOpExp("uminus", e1); :}
+                | NOT expr:e1 {: RESULT = new UnOpExp("not", e1); :}
                 | INTEGER_LITERAL:i {: RESULT = new IntConst(i); :}
-                | FLOAT_LITERAL
+                | FLOAT_LITERAL:f {: RESULT = new FloatConst(f); :}
                 | STRING_LITERAL:s {: RESULT = new StringConst(s); :}
-                | TRUE
-                | FALSE
-                | lvalue:l {: RESULT =  new LvalExp(l); :}
-                | ARRAY LP expr COMMA expr RP
-                | ID LP RP
-                | ID LP expr RP
-                | ID LP expr_list RP
-                | LB ID EQUAL expr RB
-                | LB id_expr_list RB
-                | LP RP
-                | LP expr_list RP
-                | LSB RSB
-                | LSB expr_list RSB
+                | TRUE {: RESULT = new BooleanConst(true); :}
+                | FALSE {: RESULT = new BooleanConst(false); :}
+                | lvalue:l  {:  RESULT = new LvalExp(l); :}
+                | ARRAY LP expr:e1 COMMA expr:e2 RP {: RESULT = new ArrayGen(e1, e2); :}
+                | ID:i LP RP {: RESULT = new CallExp(i, nil); :}
+                | ID:i LP expr:e RP {: RESULT = new CallExp(i , append(nil, e)); :}
+                | ID:i LP expr_list:el RP {: RESULT = new CallExp(i, el); :}
+                | LB ID:i EQUAL expr:e RB {: RESULT = new RecordExp(append(nil, new Bind(i, e))); :}
+                | LB id_expr_list:iel RB {: RESULT = new RecordExp(iel); :}
+                | LP RP {: RESULT = new NullExp(); :}
+                | LP expr_list:e1 RP {: RESULT = new TupleExp(e1); :}
+                | LSB RSB {: RESULT = new ArrayExp(nil); :}
+                | LSB expr_list:e1 RSB {: RESULT = new ArrayExp(e1); :}
                 ;
 
 stmt            ::= lvalue:lv EQUAL expr:e1 {: RESULT = new AssignSt(lv, e1); :}
