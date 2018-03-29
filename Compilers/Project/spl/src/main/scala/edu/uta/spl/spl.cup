@@ -137,7 +137,7 @@ block_content   ::= def_list:d stmt_list:s {: RESULT = new BlockSt(d, s); :}
 
 def             ::= DEF ID:i LP RP LB block_content:b RB {: RESULT = new FuncDef(i, nil, new AnyType(), b); :}
                 | DEF ID:i LP RP COLON type:t LB block_content:b RB {: RESULT = new FuncDef(i, nil, t, b); :}
-                | DEF ID:i1 LP ID:i2 COLON type:t RP LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t)), new AnyType(), b); :}
+                | DEF ID:i1 LP ID:i2 COLON type:t RP LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t)), new NoType(), b); :}
                 | DEF ID:i1 LP ID:i2 COLON type:t1 RP COLON type:t2 LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t1)), t2, b); :}
                 | DEF ID:i1 LP id_type_list:idl RP LB block_content:b RB {: RESULT = new FuncDef(i1, idl, new AnyType(), b); :}
                 | DEF ID:il LP id_type_list:idl RP COLON type:t LB block_content:b RB {: RESULT = new FuncDef(il, idl, t, b); :}
@@ -200,24 +200,24 @@ expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2
                 ;
 
 stmt            ::= lvalue:lv EQUAL expr:e1 {: RESULT = new AssignSt(lv, e1); :}
-                | ID LP RP
-                | ID LP expr RP
-                | ID LP expr_list RP
-                | LB block_content RB
-                | READ LP lvalue RP
-                | READ LP lvalue_list RP
-                | PRINT LP RP
+                | ID:i LP RP {: RESULT = new CallSt(i, nil); :}
+                | ID:i LP expr:e RP {: RESULT = new CallSt(i, append(nil, e)); :}
+                | ID:i LP expr_list:e RP {: RESULT = new CallSt(i, e); :}
+                | LB block_content:b RB {: RESULT = b; :}
+                | READ LP lvalue:l RP {: RESULT = new ReadSt(append(nil, l)); :}
+                | READ LP lvalue_list:ll RP {: RESULT = new ReadSt(ll); :}
+                | PRINT LP RP {: RESULT = new PrintSt(nil); :}
                 | PRINT LP expr:e RP {: RESULT = new PrintSt(add(e, nil)); :}
                 | PRINT LP expr_list:el RP {: RESULT = new PrintSt(el); :}
-                | IF LP expr RP stmt
-                | IF LP expr RP stmt ELSE stmt
-                | FOR LP ID EQUAL expr TO expr RP stmt
-                | FOR LP ID EQUAL expr TO expr BY expr RP stmt
-                | WHILE LP expr RP stmt
-                | LOOP stmt
-                | EXIT
-                | RETURN
-                | RETURN expr
+                | IF LP expr:e RP stmt:s {: RESULT = new IfSt(e, s, null); :}
+                | IF LP expr:e RP stmt:s1 ELSE stmt:s2 {: RESULT = new IfSt(e, s1, s2); :}
+                | FOR LP ID:i EQUAL expr:e1 TO expr:e2 RP stmt:s {: RESULT = new ForSt(i, e1, e2, e1, s); :}
+                | FOR LP ID:i EQUAL expr:e1 TO expr:e2 BY expr:e3 RP stmt:s {: RESULT = new ForSt(i, e1, e2, e3, s); :}
+                | WHILE LP expr:e RP stmt:s {: RESULT = new WhileSt(e, s); :}
+                | LOOP stmt:s {: RESULT = new LoopSt(s); :}
+                | EXIT {: RESULT = new ExitSt(); :}
+                | RETURN {: RESULT = new ReturnSt(); :}
+                | RETURN expr:e {: RESULT = new ReturnValueSt(e); :}
                 ;
 
 expr_list       ::= expr_list expr_list_item
@@ -263,12 +263,12 @@ type_list       ::= type_list type_list_item
 type_list_item  ::= type COMMA
                 ;
 
-def_list       ::= def_list def_list_item
-                | def_list def
-                | def_list_item
+def_list       ::= def_list:dl def_list_item:dli {: RESULT = append(dl, dli); :}
+                | def_list:dl def:d {: RESULT = append(dl, d); :}
+                | def_list_item:dli {: RESULT = append(nil, dli); :}
                 ;
 
-def_list_item  ::= def SEMI
+def_list_item  ::= def:d SEMI {: RESULT = d; :}
                 ;
 
 stmt_list       ::= stmt_list:s1 stmt_list_item:s2 {: RESULT = append(s1, s2); :} /*{: System.out.println("Test"); :}*/
