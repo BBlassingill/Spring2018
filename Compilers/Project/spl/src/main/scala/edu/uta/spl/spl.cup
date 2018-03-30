@@ -118,8 +118,8 @@ non terminal Stmt stmt_list_item;
 precedence nonassoc ELSE;
 precedence right LB, LSB, LP;
 precedence left RB, RSB, LSB;
-precedence right OR;
-precedence right AND;
+precedence left OR;
+precedence left AND;
 precedence nonassoc NOT;
 precedence left LEQ, LT, GT, GEQ, EQ, NEQ;
 precedence left PLUS, MINUS;
@@ -135,11 +135,11 @@ block_content   ::= def_list:d stmt_list:s {: RESULT = new BlockSt(d, s); :}
                 | stmt_list:s {: RESULT = new BlockSt(nil, s); :}
                 ;
 
-def             ::= DEF ID:i LP RP LB block_content:b RB {: RESULT = new FuncDef(i, nil, new AnyType(), b); :}
+def             ::= DEF ID:i LP RP LB block_content:b RB {: RESULT = new FuncDef(i, nil, new NoType(), b); :}
                 | DEF ID:i LP RP COLON type:t LB block_content:b RB {: RESULT = new FuncDef(i, nil, t, b); :}
                 | DEF ID:i1 LP ID:i2 COLON type:t RP LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t)), new NoType(), b); :}
                 | DEF ID:i1 LP ID:i2 COLON type:t1 RP COLON type:t2 LB block_content:b RB {: RESULT = new FuncDef(i1, append(nil, new Bind(i2, t1)), t2, b); :}
-                | DEF ID:i1 LP id_type_list:idl RP LB block_content:b RB {: RESULT = new FuncDef(i1, idl, new AnyType(), b); :}
+                | DEF ID:i1 LP id_type_list:idl RP LB block_content:b RB {: RESULT = new FuncDef(i1, idl, new NoType(), b); :}
                 | DEF ID:il LP id_type_list:idl RP COLON type:t LB block_content:b RB {: RESULT = new FuncDef(il, idl, t, b); :}
                 | VAR ID:i EQUAL expr:expr1 {: RESULT = new VarDef(i, new AnyType(), expr1); :}
                 | VAR ID:i COLON type:t EQUAL expr:e {: RESULT = new VarDef(i, t, e); :}
@@ -179,7 +179,7 @@ expr            ::= expr:e1 PLUS expr:e2 {: RESULT = new BinOpExp("plus", e1, e2
                 | expr:e1 LEQ expr:e2 {: RESULT = new BinOpExp("leq", e1, e2); :}
                 | expr:e1 GT expr:e2 {: RESULT = new BinOpExp("gt", e1, e2); :}
                 | expr:e1 GEQ expr:e2 {: RESULT = new BinOpExp("geq", e1, e2); :}
-                | MINUS expr:e1 {: RESULT = new UnOpExp("uminus", e1); :}
+                | MINUS expr:e1 {: RESULT = new UnOpExp("minus", e1); :}
                 | NOT expr:e1 {: RESULT = new UnOpExp("not", e1); :}
                 | INTEGER_LITERAL:i {: RESULT = new IntConst(i); :}
                 | FLOAT_LITERAL:f {: RESULT = new FloatConst(f); :}
@@ -211,7 +211,7 @@ stmt            ::= lvalue:lv EQUAL expr:e1 {: RESULT = new AssignSt(lv, e1); :}
                 | PRINT LP expr_list:el RP {: RESULT = new PrintSt(el); :}
                 | IF LP expr:e RP stmt:s {: RESULT = new IfSt(e, s, null); :}
                 | IF LP expr:e RP stmt:s1 ELSE stmt:s2 {: RESULT = new IfSt(e, s1, s2); :}
-                | FOR LP ID:i EQUAL expr:e1 TO expr:e2 RP stmt:s {: RESULT = new ForSt(i, e1, e2, e1, s); :}
+                | FOR LP ID:i EQUAL expr:e1 TO expr:e2 RP stmt:s {: RESULT = new ForSt(i, e1, e2, new IntConst(1), s); :}
                 | FOR LP ID:i EQUAL expr:e1 TO expr:e2 BY expr:e3 RP stmt:s {: RESULT = new ForSt(i, e1, e2, e3, s); :}
                 | WHILE LP expr:e RP stmt:s {: RESULT = new WhileSt(e, s); :}
                 | LOOP stmt:s {: RESULT = new LoopSt(s); :}
@@ -220,47 +220,44 @@ stmt            ::= lvalue:lv EQUAL expr:e1 {: RESULT = new AssignSt(lv, e1); :}
                 | RETURN expr:e {: RESULT = new ReturnValueSt(e); :}
                 ;
 
-expr_list       ::= expr_list expr_list_item
-                | expr_list expr
-                | expr_list_item
+expr_list       ::= expr_list:el expr_list_item:eli {: RESULT = append(el, eli); :}
+                | expr_list:el expr:e {: RESULT = append(el, e); :}
+                | expr_list_item:eli {: RESULT = append(nil, eli); :}
                 ;
 
-expr_list_item  ::= expr COMMA
+expr_list_item  ::= expr:e COMMA {: RESULT = e; :}
                 ;
 
-lvalue_list     ::= lvalue_list lvalue_list_item
-                | lvalue_list lvalue
-                | lvalue_list_item
+lvalue_list     ::= lvalue_list:ll lvalue_list_item:lli {: RESULT = append(ll, lli); :}
+                | lvalue_list:ll lvalue:l {: RESULT = append(ll, l); :}
+                | lvalue_list_item:lli {: RESULT = append(nil, lli); :}
                 ;
 
-lvalue_list_item ::= lvalue COMMA
+lvalue_list_item ::= lvalue:l COMMA {: RESULT = l; :}
                  ;
 
-id_expr_list    ::= id_expr_list id_expr_list_item
-                | id_expr_list ID EQUAL expr
-                | id_expr_list_item
+id_expr_list    ::= id_expr_list:iel id_expr_list_item:ieli {: RESULT = append(iel, ieli); :}
+                | id_expr_list:iel ID:i EQUAL expr:e {: RESULT = append(iel, new Bind(i, e)); :}
+                | id_expr_list_item:idli {: RESULT = append(nil, idli); :}
                 ;
 
-id_expr_list_item ::= ID EQUAL expr COMMA
+id_expr_list_item ::= ID:i EQUAL expr:e COMMA {: RESULT = new Bind(i,e); :}
                   ;
 
-id_type_list    ::= id_type_list id_type_list_item
-                | id_type_list:tl ID:i COLON type:t /*{:
-                    l1 = add(i, nil);
-                    l1 = append(l1, ":");
-                    RESULT = append(tl, nil); :}*/
-                | id_type_list_item:i {: RESULT = add(i, nil); :}
+id_type_list    ::= id_type_list:itl id_type_list_item:itli {: RESULT = append(itl, itli); :}
+                | id_type_list:itl ID:i COLON type:t {: RESULT = append(itl, new Bind(i, t)); :}
+                | id_type_list_item:itli {: RESULT = append(nil, itli); :}
                 ;
 
 id_type_list_item   ::= ID:i COLON type:t COMMA {: RESULT = new Bind<Type>(i, t); :}
                     ;
 
-type_list       ::= type_list type_list_item
-                | type_list type
-                | type_list_item
+type_list       ::= type_list:tl type_list_item:tli {: RESULT = append(tl, tli); :}
+                | type_list:tl type:t {: RESULT = append(tl, t); :}
+                | type_list_item:tli {: RESULT = append(nil, tli); :}
                 ;
 
-type_list_item  ::= type COMMA
+type_list_item  ::= type:t COMMA {: RESULT = t; :}
                 ;
 
 def_list       ::= def_list:dl def_list_item:dli {: RESULT = append(dl, dli); :}
@@ -271,9 +268,9 @@ def_list       ::= def_list:dl def_list_item:dli {: RESULT = append(dl, dli); :}
 def_list_item  ::= def:d SEMI {: RESULT = d; :}
                 ;
 
-stmt_list       ::= stmt_list:s1 stmt_list_item:s2 {: RESULT = append(s1, s2); :} /*{: System.out.println("Test"); :}*/
-                | stmt_list def
-                | stmt_list_item:si {: RESULT = append(nil, si); :} /*{: System.out.println("Test"); :} */
+stmt_list       ::= stmt_list:s1 stmt_list_item:s2 {: RESULT = append(s1, s2); :}
+                /*| stmt_list:sl def:d {: RESULT = append(sl, d); :}*/
+                | stmt_list_item:si {: RESULT = append(nil, si); :}
                 ;
 
 stmt_list_item  ::= stmt:s SEMI {: RESULT = s; :}
