@@ -110,10 +110,28 @@ class TypeCheck extends TypeChecker {
                    error("Binary arithmetic operations can only be applied to integer or real numbers: "+e)
            else if (op.equals("gt") || op.equals("lt") || op.equals("geq") || op.equals("leq"))
                    BooleanType()
-           else if (op)
-           else ltp
 
       /* PUT YOUR CODE HERE */
+           else if (op.equals("times") || op.equals("-") || op.equals("*") || op.equals("/")) {
+
+           //ltp //We already know at this point that the two types are equal and they they're only either an int or a float so we can just return the type of the ltp
+             if (ltp == rtp && typeEquivalence(ltp, IntType()))
+               IntType()
+             else
+               FloatType()}
+//             else error("Incompatible types in binary operation: " + e)
+           else ltp
+      case IntConst(value)
+        => IntType()
+      case FloatConst(value)
+        => FloatType()
+      case StringConst(value)
+        => StringType()
+      case BooleanConst(value)
+        => BooleanType()
+      case LvalExp(lvalue)
+        => println("Got the lvalue part")
+           typecheck(lvalue)
 
       case _ => throw new Error("Wrong expression: "+e)
     } )
@@ -141,6 +159,29 @@ class TypeCheck extends TypeChecker {
               error("Incompatible types in assignment: "+e)
 
       /* PUT YOUR CODE HERE */
+      case BlockSt(defs, stmts) //TODO: Need to handle defs case
+        =>
+          st.begin_scope()
+          if (defs.isEmpty) {
+            stmts.foreach { x => typecheck(x, NoType()) }
+          }
+          else if (stmts.isEmpty) {
+            defs.foreach { x => typecheck(x) }
+          }
+
+          else {
+            defs.foreach { x => typecheck(x) }
+            stmts.foreach { x => typecheck(x, NoType()) }
+          }
+          st.end_scope()
+
+      case PrintSt(exprs) //TODO: Not sure if these beginning and ending scopes are necessary for a print statement/Read statements
+        =>
+//          st.begin_scope()
+          exprs.foreach{ x => typecheck(x)}
+//          st.end_scope()
+      case ReadSt(lvalues)
+        =>  lvalues.foreach { lval => typecheck(lval)}
       case _ => throw new Error("Wrong statement: "+e)
     } )
   }
@@ -156,7 +197,11 @@ class TypeCheck extends TypeChecker {
            st.end_scope()
 
       /* PUT YOUR CODE HERE */
-
+      case VarDef(name, hasType, expr)
+        =>  st.insert(name, VarDeclaration(hasType, 0, 0))
+            st.begin_scope()
+            typecheck(expr)
+            st.end_scope()
       case _ => throw new Error("Wrong statement: "+e)
     } )
   }
