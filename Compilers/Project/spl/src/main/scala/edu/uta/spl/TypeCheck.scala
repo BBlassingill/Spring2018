@@ -112,15 +112,81 @@ class TypeCheck extends TypeChecker {
                    BooleanType()
 
       /* PUT YOUR CODE HERE */
-           else if (op.equals("times") || op.equals("-") || op.equals("*") || op.equals("/")) {
-
-           //ltp //We already know at this point that the two types are equal and they they're only either an int or a float so we can just return the type of the ltp
+           else if (op.equals("times") || op.equals("plus") || op.equals("minus") || op.equals("times") || op.equals("div")) {
+           //ltp //We already know at this point that the two types are equal and that they're only either an int or a float so we can just return the type of the ltp
              if (ltp == rtp && typeEquivalence(ltp, IntType()))
                IntType()
              else
                FloatType()}
 //             else error("Incompatible types in binary operation: " + e)
            else ltp
+      case UnOpExp(op, expr)
+        => typecheck(expr)
+      case CallExp(name, exprs)
+        => st.lookup(name) match {
+        case Some(FuncDeclaration(outputType, params, "", 0, 0)) => {
+          if (params.length != exprs.length) {
+            throw new Error("Number of paramters doesn't match number of arguments")
+          }
+
+          else {
+            (exprs.map(typecheck(_)) zip params).map({
+              case (atp, ptp) => //TODO: Can this be in the format of (atp, ptp)?
+                if (!typeEquivalence(atp, ptp.value)) {
+                  throw new Error("The type of call argument (" + atp + ") does not match the type of the formal parameter: " + ptp)
+                }
+            })
+            outputType
+          }
+        }
+
+        case _ => throw new Error("Undefined function: " + name)
+        }
+      case RecordExp(bind_exprs)
+        => var test = bind_exprs.foreach(bind_expr => typecheck(bind_expr.value))
+           bind_exprs.map(bind_expr => st.lookup(bind_expr.name) match {
+             case Some(TypeDeclaration(t)) => t
+             case Some(VarDeclaration(t,_,_)) => t
+             case None => error("Why are we getting None cases?") //TODO: This is getting to none because the names weren't added to the symbol table previously. Need to investigate further
+           })
+        println("Printng out the map")
+        println(test)
+        NoType() //TODO: Need to figure out a way to return a RecordType
+
+//        if (bind_exprs.isEmpty) {
+//          error("Error the hell out")
+//        }
+//
+//        else {//(bind_exprs.isEmpty) {
+//          bind_exprs.foreach{bind_expr => st.lookup(bind_expr.name) match {
+//            case Some(TypeDeclaration(t)) => t
+//            case Some(_) => error(bind_expr.name + " is not a variable.")
+//            case None => error("Undefined variable")
+//          }
+//          }}
+
+//            case Bind(name, expr) => typecheck(expr)
+//            case _ => None
+//            //case None => None}
+//        }
+
+//        bind_exprs.foreach{x => typecheck(x.value)}
+
+//        bind_exprs.foreach { x => typecheck(x.value) }
+//        bind_exprs.foreach{
+//           bind_expr => st.lookup(bind_expr.name) match {
+//            case Some(TypeDeclaration(hastype)) => hastype
+//            case Some(_) => error(bind_expr.name + " is not a variable")
+//            case None => error("Undefined variable")
+//          }
+////          case None => error("test error")
+//        }
+
+//      case RecordExp(exprs)
+//        => exprs.foreach { case Bind(name, expr) => //typecheck(expr)}//
+//          st.lookup(name) match {
+//            case Some(Bind())
+//      //} }
       case IntConst(value)
         => IntType()
       case FloatConst(value)
@@ -130,8 +196,9 @@ class TypeCheck extends TypeChecker {
       case BooleanConst(value)
         => BooleanType()
       case LvalExp(lvalue)
-        => println("Got the lvalue part")
-           typecheck(lvalue)
+        => typecheck(lvalue)
+      case NullExp() //TODO: Check what to do with null expressions
+        => null
 
       case _ => throw new Error("Wrong expression: "+e)
     } )
@@ -197,11 +264,17 @@ class TypeCheck extends TypeChecker {
            st.end_scope()
 
       /* PUT YOUR CODE HERE */
+        //We need to insert for all declarations because it's the first time the variables are being declared
       case VarDef(name, hasType, expr)
         =>  st.insert(name, VarDeclaration(hasType, 0, 0))
             st.begin_scope()
             typecheck(expr)
             st.end_scope()
+      case TypeDef(name, isType)
+        => st.insert(name, TypeDeclaration(isType)) //TODO: Do we need to do anything with type defs?
+//          st.begin_scope()
+      //        isType
+      //        st.end_scope()
       case _ => throw new Error("Wrong statement: "+e)
     } )
   }
