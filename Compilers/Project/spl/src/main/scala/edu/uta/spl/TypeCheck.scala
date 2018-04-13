@@ -1,5 +1,7 @@
 package edu.uta.spl
 
+import javax.lang.model.`type`.NullType
+
 abstract class TypeChecker {
   var trace_typecheck = false
 
@@ -133,12 +135,12 @@ class TypeCheck extends TypeChecker {
       => st.lookup(name) match {
         case Some(FuncDeclaration(outputType, params, "", 0, 0)) => {
           if (params.length != exprs.length) {
-            throw new Error("Number of paramters doesn't match number of arguments")
+            throw new Error("Number of parameters doesn't match number of arguments")
           }
 
           else {
             (exprs.map(typecheck(_)) zip params).foreach({
-              case (atp, ptp) => //TODO: Can this be in the format of (atp, ptp)?
+              case (atp, ptp) =>
                 if (!typeEquivalence(atp, ptp.value)) {
                   throw new Error("The type of call argument (" + atp + ") does not match the type of the formal parameter: " + ptp)
                 }
@@ -154,9 +156,8 @@ class TypeCheck extends TypeChecker {
       =>
 
         var bind_list = bind_exprs.map(bind_expr => Bind(bind_expr.name, typecheck(bind_expr.value)))
-        bind_list.foreach(bind_expr => st.insert(bind_expr.name, VarDeclaration(bind_expr.value,0,0)))
-        println("FINAL BIND LIST: " + bind_list)
-        println("ORIGINAL BIND EXPR LIST: " + bind_exprs)
+        bind_list.foreach(bind_expr => st.insert(bind_expr.name, VarDeclaration(bind_expr.value, 0, 0)))
+
         RecordType(bind_list)
 
       case ArrayExp(exprs)
@@ -168,8 +169,8 @@ class TypeCheck extends TypeChecker {
         ArrayType(initialType)
 
       case ArrayGen(length, value)
-        => typecheck(length)
-            ArrayType(typecheck(value))
+      => typecheck(length)
+        ArrayType(typecheck(value))
 
       case IntConst(value)
       => IntType()
@@ -184,7 +185,8 @@ class TypeCheck extends TypeChecker {
       => BooleanType()
 
       case LvalExp(lvalue)
-      => typecheck(lvalue)
+      => var t = typecheck(lvalue)
+        t
 
       case NullExp() //TODO: Check what to do with null expressions
       => AnyType()
@@ -203,34 +205,40 @@ class TypeCheck extends TypeChecker {
       }
 
       /* PUT YOUR CODE HERE */
-      case RecordDeref(record: Expr, attribute: String)
-      =>
-        if(typecheck(record).isInstanceOf[RecordType]) {
-          var returnedType = typecheck(record).asInstanceOf[RecordType]
-          var bindList = returnedType.components
+      case RecordDeref(record, attribute)
+      => st.begin_scope()
+        val t = typecheck(record)
+
+        if (t.isInstanceOf[RecordType]) {
+          val returnedType = t.asInstanceOf[RecordType]
+          val bindList = returnedType.components
 
           (for (e <- bindList.toIterator if e.name == attribute) yield e.value).next()
         }
 
-        else{
-          //var returnedType = typecheck(record).asInstanceOf[NamedType]
-          st.lookup(attribute) match {
-            case Some(VarDeclaration(t, _, _)) =>
-              println("Vardeclaration: " + t)
-              t
-            case Some(TypeDeclaration(t)) =>
-              println("Typedeclaration: " + t)
-              t
+        else if (t.isInstanceOf[NamedType]) {
+          val returnedType = t.asInstanceOf[NamedType]
+          val namedType = returnedType.typename
 
+          st.lookup(namedType) match {
+            case Some(TypeDeclaration(t2)) =>
+              val recordType = t2.asInstanceOf[RecordType]
+              val bindList = recordType.components
+
+              (for (e <- bindList.toIterator if e.name == attribute) yield e.value).next()
           }
-          //NamedType(returnedType.typename)
+        }
+
+        else {
+          print("This is just a test")
+          FloatType()
         }
 
 
       case ArrayDeref(array, index)
       =>
-        var type1 = typecheck(index)
-        var type2 = typecheck(array).asInstanceOf[ArrayType]
+        val type1 = typecheck(index)
+        val type2 = typecheck(array).asInstanceOf[ArrayType]
 
         //if (typeEquivalence(type1, type2))
         type2.element_type //TODO:Not sure if this is right
@@ -269,7 +277,7 @@ class TypeCheck extends TypeChecker {
       case ReadSt(lvalues)
       => lvalues.foreach { lval => typecheck(lval) }
 
-      case ForSt(variable, initial, step, increment, body) //TODO: Need to somehow not make the variable available outside the scope of the for loop
+      case ForSt(variable, initial, step, increment, body)
       => st.begin_scope()
         var type1 = typecheck(initial)
         var type2 = typecheck(step)
@@ -304,7 +312,11 @@ class TypeCheck extends TypeChecker {
       => list_of_exprs.foreach(x => typecheck(x))
 
       case ReturnValueSt(value)
-        => typecheck(value)
+      => typecheck(value)
+
+      case ReturnSt()
+        => st.begin_scope()
+        expected_type
 
       case _ => throw new Error("Wrong statement: " + e)
     })
@@ -324,12 +336,14 @@ class TypeCheck extends TypeChecker {
       //We need to insert for all declarations because it's the first time the variables are being declared
       case VarDef(name, hasType, expr)
       =>
+        //st.begin_scope()
         st.insert(name, VarDeclaration(typecheck(expr), 0, 0))
       // st.begin_scope() //TODO: Don't think it makes sense to define the scope here
       //typecheck(expr)
       // st.end_scope()
       case TypeDef(name, isType)
       => st.insert(name, TypeDeclaration(isType)) //TODO: Do we need to do anything with type defs?
+        //st.begin_scope()
       case _ => throw new Error("Wrong statement: " + e)
     })
   }
