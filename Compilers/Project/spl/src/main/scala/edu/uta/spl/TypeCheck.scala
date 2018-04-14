@@ -1,7 +1,5 @@
 package edu.uta.spl
 
-import javax.lang.model.`type`.NullType
-
 abstract class TypeChecker {
   var trace_typecheck = false
 
@@ -120,17 +118,38 @@ class TypeCheck extends TypeChecker {
           BooleanType()
 
         /* PUT YOUR CODE HERE */
-        else if (op.equals("times") || op.equals("plus") || op.equals("minus") || op.equals("times") || op.equals("div")) {
-          //ltp //We already know at this point that the two types are equal and that they're only either an int or a float so we can just return the type of the ltp
-          if (ltp == rtp && typeEquivalence(ltp, IntType()))
+        else if (op.equals("times") || op.equals("plus") || op.equals("minus") || op.equals("div")) {
+          if (typeEquivalence(ltp, IntType()))
             IntType()
           else
             FloatType()
         }
-        //             else error("Incompatible types in binary operation: " + e)
+
+        else if (op.equals("mod")) {
+          if (!typeEquivalence(ltp, IntType()))
+            error("The MOD operator can only be applied to int types")
+          IntType()
+        }
         else ltp
       case UnOpExp(op, expr)
-      => typecheck(expr)
+      => val returnedType = typecheck(expr)
+        if (op.equals("minus")) {
+          if (typeEquivalence(returnedType, IntType()) || typeEquivalence(returnedType, FloatType())) {
+            returnedType
+          }
+
+          else
+            error("The unary minus operator can only be applied to integers and floats.")
+        }
+
+        else {
+          if (!typeEquivalence(returnedType, BooleanType()))
+            error("The NOT operator can only be applied to boolean types")
+
+          else
+            returnedType
+        }
+
       case CallExp(name, exprs)
       => st.lookup(name) match {
         case Some(FuncDeclaration(outputType, params, "", 0, 0)) => {
@@ -139,7 +158,7 @@ class TypeCheck extends TypeChecker {
           }
 
           else {
-            (exprs.map(typecheck(_)) zip params).foreach({
+            (exprs.map(typecheck) zip params).foreach({
               case (atp, ptp) =>
                 if (!typeEquivalence(atp, ptp.value)) {
                   throw new Error("The type of call argument (" + atp + ") does not match the type of the formal parameter: " + ptp)
@@ -172,6 +191,10 @@ class TypeCheck extends TypeChecker {
       => typecheck(length)
         ArrayType(typecheck(value))
 
+      case TupleExp(exprs)
+      => val types = for (expr <- exprs) yield typecheck(expr)
+        TupleType(types)
+
       case IntConst(value)
       => IntType()
 
@@ -185,10 +208,9 @@ class TypeCheck extends TypeChecker {
       => BooleanType()
 
       case LvalExp(lvalue)
-      => var t = typecheck(lvalue)
-        t
+      => typecheck(lvalue)
 
-      case NullExp() //TODO: Check what to do with null expressions
+      case NullExp()
       => AnyType()
 
       case _ => throw new Error("Wrong expression: " + e)
@@ -216,7 +238,7 @@ class TypeCheck extends TypeChecker {
           (for (e <- bindList.toIterator if e.name == attribute) yield e.value).next()
         }
 
-        else if (t.isInstanceOf[NamedType]) {
+        else {
           val returnedType = t.asInstanceOf[NamedType]
           val namedType = returnedType.typename
 
@@ -229,20 +251,18 @@ class TypeCheck extends TypeChecker {
           }
         }
 
-        else {
-          print("This is just a test")
-          FloatType()
-        }
-
-
       case ArrayDeref(array, index)
       =>
         val type1 = typecheck(index)
         val type2 = typecheck(array).asInstanceOf[ArrayType]
 
-        //if (typeEquivalence(type1, type2))
-        type2.element_type //TODO:Not sure if this is right
+        type2.element_type
 
+      case TupleDeref(tuple, index)
+      =>
+        val type1 = typecheck(tuple).asInstanceOf[TupleType]
+        val types = type1.components
+        types(index)
 
       case _ => throw new Error("Wrong lvalue: " + e)
     })
@@ -255,7 +275,7 @@ class TypeCheck extends TypeChecker {
         error("Incompatible types in assignment: " + e)
 
       /* PUT YOUR CODE HERE */
-      case BlockSt(defs, stmts) //TODO: Need to handle defs case
+      case BlockSt(defs, stmts)
       =>
         st.begin_scope()
         if (defs.isEmpty) {
@@ -271,7 +291,7 @@ class TypeCheck extends TypeChecker {
         }
         st.end_scope()
 
-      case PrintSt(exprs) //TODO: Not sure if these beginning and ending scopes are necessary for a print statement/Read statements
+      case PrintSt(exprs)
       => exprs.foreach { x => typecheck(x) }
 
       case ReadSt(lvalues)
@@ -279,9 +299,9 @@ class TypeCheck extends TypeChecker {
 
       case ForSt(variable, initial, step, increment, body)
       => st.begin_scope()
-        var type1 = typecheck(initial)
-        var type2 = typecheck(step)
-        var type3 = typecheck(increment)
+        val type1 = typecheck(initial)
+        val type2 = typecheck(step)
+        val type3 = typecheck(increment)
 
         if (typeEquivalence(type1, type2)) {
           if (typeEquivalence(type1, type3)) {
@@ -293,8 +313,16 @@ class TypeCheck extends TypeChecker {
 
         else error("Incompatible types for For loop iterations")
 
-        typecheck(body, expected_type) //TODO: Don't think expected_type here is correct lol
+        typecheck(body, expected_type)
         st.end_scope()
+
+      case LoopSt(body)
+      => st.begin_scope()
+        typecheck(body, expected_type)
+        st.end_scope()
+
+      case ExitSt()
+      => NoType()
 
       case WhileSt(condition, body)
       => typecheck(condition)
@@ -307,7 +335,6 @@ class TypeCheck extends TypeChecker {
         if (else_stmt != null)
           typecheck(else_stmt, expected_type)
 
-
       case CallSt(name, list_of_exprs)
       => list_of_exprs.foreach(x => typecheck(x))
 
@@ -315,7 +342,7 @@ class TypeCheck extends TypeChecker {
       => typecheck(value)
 
       case ReturnSt()
-        => st.begin_scope()
+      => st.begin_scope()
         expected_type
 
       case _ => throw new Error("Wrong statement: " + e)
@@ -333,17 +360,19 @@ class TypeCheck extends TypeChecker {
         st.end_scope()
 
       /* PUT YOUR CODE HERE */
-      //We need to insert for all declarations because it's the first time the variables are being declared
       case VarDef(name, hasType, expr)
-      =>
-        //st.begin_scope()
-        st.insert(name, VarDeclaration(typecheck(expr), 0, 0))
-      // st.begin_scope() //TODO: Don't think it makes sense to define the scope here
-      //typecheck(expr)
-      // st.end_scope()
+      => val returnedType = typecheck(expr)
+
+        if (returnedType == AnyType()) {
+          st.insert(name, VarDeclaration(hasType, 0, 0))
+        }
+
+        else {
+          st.insert(name, VarDeclaration(returnedType, 0, 0))
+        }
+
       case TypeDef(name, isType)
-      => st.insert(name, TypeDeclaration(isType)) //TODO: Do we need to do anything with type defs?
-        //st.begin_scope()
+      => st.insert(name, TypeDeclaration(isType))
       case _ => throw new Error("Wrong statement: " + e)
     })
   }
