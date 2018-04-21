@@ -101,6 +101,9 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       => StringValue(value)
       //      case BooleanConst(value) //TODO: boolean const case
       //        => StringValue()
+      case LvalExp(value)
+      => code(value, level, fname)
+
       case _ => throw new Error("Wrong expression: " + e)
     }
 
@@ -118,7 +121,8 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         }
 
       /* PUT YOUR CODE HERE */
-
+      case Var(name)
+      => access_variable(name, level) //TODO: Not sure if this level needs to consider variables that were declared in higher stack frames
       case _ => throw new Error("Wrong statement: " + e)
     }
 
@@ -145,40 +149,48 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       /* PUT YOUR CODE HERE */
       case BlockSt(defs, stmts)
-      => val IRs = for (s <- stmts) yield code(s, level, fname, exit_label)
-        Seq(IRs)
+      => val defIRs = for (d <- defs) yield code(d, fname, level)
+        val stmtIRs = for (s <- stmts) yield code(s, level, fname, exit_label)
+
+        Seq(defIRs ::: stmtIRs)
       case PrintSt(exprs)
-      =>
-        var x = ListBuffer[IRstmt]()
+      => var x = ListBuffer[IRstmt]()
         for (expr <- exprs) yield {
           val returnedType = tc.typecheck(expr)
           var systemCall1: IRstmt = null
 
-          if (returnedType.isInstanceOf[IntType]) {
-            systemCall1 = SystemCall("WRITE_INT", code(expr, level, fname))
-            x += (systemCall1)
-          }
-
-          else if (returnedType.isInstanceOf[FloatType]) {
-            systemCall1 = SystemCall("WRITE_FLOAT", code(expr, level, fname))
-            x += (systemCall1)
-          }
-
-          else if (returnedType.isInstanceOf[BooleanType]) {
-            systemCall1 = SystemCall("WRITE_BOOL", code(expr, level, fname))
-            x += (systemCall1)
-          }
-
-          else {
-            systemCall1 = SystemCall("WRITE_STRING", code(expr, level, fname))
-            x += (systemCall1)
+          returnedType match {
+            case _: IntType =>
+              systemCall1 = SystemCall("WRITE_INT", code(expr, level, fname))
+              x += systemCall1
+            case _: FloatType =>
+              systemCall1 = SystemCall("WRITE_FLOAT", code(expr, level, fname))
+              x += systemCall1
+            case _: BooleanType =>
+              systemCall1 = SystemCall("WRITE_BOOL", code(expr, level, fname))
+              x += systemCall1
+            case _ =>
+              systemCall1 = SystemCall("WRITE_STRING", code(expr, level, fname))
+              x += systemCall1
           }
 
           val systemCall2 = SystemCall("WRITE_STRING", StringValue("\\n"))
-          x += (systemCall2)
+          x += systemCall2
         }
 
         Seq(x.toList)
+
+      case CallSt(name, exprs)
+      =>
+        val IRs = for (e <- exprs) yield code(e, level - 1, fname) //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
+
+        val static_link = Reg("fp")
+        val returned_label = st.lookup(name) match {
+          case Some(FuncDeclaration(outtype, params, label, level, available_offset)) => label
+        }
+
+
+        CallP(returned_label, static_link, IRs)
 
       case _ => throw new Error("Wrong statement: " + e)
     }
@@ -218,7 +230,15 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         }
 
       /* PUT YOUR CODE HERE */
-
+      case VarDef(name, hasType, expr)
+      =>
+        //        st.insert(name, VarDeclaration(tc.typecheck(expr), level, 0))
+        //allocate the variable
+        val access_code = allocate_variable(name, tc.typecheck(expr), fname)
+        //destination is the access variable
+        //source will be the code of v?
+        //So the move will store the code to generate v into the space that was allocated for it
+        Move(access_code, code(expr, level, fname))
       case _ => throw new Error("Wrong statement: " + e)
     }
 
