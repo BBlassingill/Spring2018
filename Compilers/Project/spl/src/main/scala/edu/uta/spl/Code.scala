@@ -192,6 +192,27 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
         CallP(returned_label, static_link, IRs)
 
+      case ReadSt(lvalues)
+      => var x = ListBuffer[IRstmt]()
+        for (lval <- lvalues) yield {
+          val returnedType = tc.typecheck(lval)
+          var systemCall1: IRstmt = null
+
+          returnedType match {
+            case _: IntType =>
+              systemCall1 = SystemCall("READ_INT", code(lval, level, fname))
+              x += systemCall1
+            case _: FloatType =>
+              systemCall1 = SystemCall("READ_FLOAT", code(lval, level, fname))
+              x += systemCall1
+          }
+
+          //          val systemCall2 = SystemCall("WRITE_STRING", StringValue("\\n"))
+          //          x += systemCall2
+        }
+
+        Seq(x.toList)
+
       case _ => throw new Error("Wrong statement: " + e)
     }
 
