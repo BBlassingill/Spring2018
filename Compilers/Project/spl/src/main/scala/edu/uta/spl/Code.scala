@@ -73,7 +73,8 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         val nop = op.toUpperCase()
         Binop(nop, cl, cr)
       case ArrayGen(len, v)
-      => val A = allocate_variable(new_name("A"), typechecker.typecheck(e), fname)
+      => println("created new loop in arraygen")
+        val A = allocate_variable(new_name("A"), typechecker.typecheck(e), fname)
         val L = allocate_variable(new_name("L"), IntType(), fname)
         val V = allocate_variable(new_name("V"), typechecker.typecheck(v), fname)
         val I = allocate_variable(new_name("I"), IntType(), fname)
@@ -99,11 +100,37 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       => FloatValue(value)
       case StringConst(value)
       => StringValue(value)
-      //      case BooleanConst(value) //TODO: boolean const case
-      //        => StringValue()
+      case BooleanConst(value)
+      => if (value.equals(true))
+        IntValue(1)
+      else
+        IntValue(0)
+
       case LvalExp(value)
       => code(value, level, fname)
+      case ArrayExp(exprs)
+      => var ir_stmts = ListBuffer[IRstmt]()
+        var ir_exprs = ListBuffer[IRexp]()
 
+        val current_offset = st.lookup(fname) match {
+          case Some(FuncDeclaration(outtype, params, label, level_of_func, available_offset)) =>
+            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4)) //TODO: Not sure if this correct to do
+            available_offset
+        }
+
+        ir_stmts += Move(Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), Allocate(IntValue(exprs.length + 1)))
+        ir_stmts += Move(Mem(Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset)))), IntValue(exprs.length))
+
+        var beginningAddress = 4
+
+        new_name("loop")
+
+        for (expr <- exprs) yield {
+          ir_stmts += Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), IntValue(beginningAddress))), code(expr, level, fname))
+          beginningAddress += 4
+        }
+
+        ESeq(Seq(ir_stmts.toList), Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))))
       case _ => throw new Error("Wrong expression: " + e)
     }
 
@@ -121,6 +148,12 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         }
 
       /* PUT YOUR CODE HERE */
+      case ArrayDeref(array, index)
+      =>
+        val codeForIndex = code(index, level, fname)
+        val returnedCode = code(array, level, fname)
+        Mem(Binop("PLUS", returnedCode, Binop("TIMES", Binop("PLUS", codeForIndex, IntValue(1)), IntValue(4))))
+
       case Var(name)
       => access_variable(name, level) //TODO: Not sure if this level needs to consider variables that were declared in higher stack frames
       case _ => throw new Error("Wrong statement: " + e)
@@ -174,9 +207,11 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
               x += systemCall1
           }
 
-          val systemCall2 = SystemCall("WRITE_STRING", StringValue("\\n"))
-          x += systemCall2
+
         }
+
+        val systemCall2 = SystemCall("WRITE_STRING", StringValue("\\n"))
+        x += systemCall2
 
         Seq(x.toList)
 
@@ -253,13 +288,14 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       /* PUT YOUR CODE HERE */
       case VarDef(name, hasType, expr)
       =>
-        //        st.insert(name, VarDeclaration(tc.typecheck(expr), level, 0))
-        //allocate the variable
         val access_code = allocate_variable(name, tc.typecheck(expr), fname)
-        //destination is the access variable
-        //source will be the code of v?
-        //So the move will store the code to generate v into the space that was allocated for it
+
         Move(access_code, code(expr, level, fname))
+
+      case TypeDef(name, isType)
+      => Seq(List()) //TODO: Come back and expand the typedef case
+
+
       case _ => throw new Error("Wrong statement: " + e)
     }
 
