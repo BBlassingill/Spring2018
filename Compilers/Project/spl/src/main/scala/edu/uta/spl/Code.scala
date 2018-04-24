@@ -153,6 +153,10 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         }
 
         ESeq(Seq(ir_stmts.toList), Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))))
+
+      case NullExp()
+      => IntValue(0)
+
       case _ => throw new Error("Wrong expression: " + e)
     }
 
@@ -239,7 +243,8 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       case CallSt(name, exprs)
       =>
-        val IRs = for (e <- exprs) yield code(e, level - 1, fname) //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
+        //val IRs = for (e <- exprs) yield code(e, level - 1, fname) //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
+        val IRs = for (e <- exprs) yield code(e, level, fname)
 
         val static_link = Reg("fp")
         val returned_label = st.lookup(name) match {
@@ -299,6 +304,9 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         x += Label(continueAddress)
 
         Seq(x.toList)
+
+      case ReturnValueSt(value)
+      => Move(Reg("a0"), code(value, level, fname))
       case _ => throw new Error("Wrong statement: " + e)
     }
 
@@ -338,13 +346,12 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       /* PUT YOUR CODE HERE */
       case VarDef(name, hasType, expr)
-      =>
-        val access_code = allocate_variable(name, tc.typecheck(expr), fname)
-
+      => val access_code = allocate_variable(name, tc.typecheck(expr), fname)
         Move(access_code, code(expr, level, fname))
 
       case TypeDef(name, isType)
-      => Seq(List()) //TODO: Come back and expand the typedef case
+      => st.insert(name, TypeDeclaration(isType))
+        Seq(List()) //TODO: Come back and expand the typedef case
 
 
       case _ => throw new Error("Wrong statement: " + e)
