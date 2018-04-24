@@ -249,11 +249,18 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         Seq(x.toList)
 
       case WhileSt(condition, body)
-      => val loopAddress = new_name("loop")
-        Jump(loopAddress)
-        println("Code for body: " + code(body, level, fname, "exit"))
-        new_name("loop")
-        Seq(null)
+      => var x = ListBuffer[IRstmt]()
+        val loopAddress = new_name("loop")
+        val exitAddress = new_name("exit")
+
+        x += Label(loopAddress)
+        x += CJump(Unop("NOT", code(condition, level, fname)), exitAddress)
+        x += code(body, level, fname, "exit")
+        x += Jump(loopAddress)
+        x += Label(exitAddress)
+
+        Seq(x.toList)
+
       case AssignSt(destination, source)
       => Move(code(destination, level, fname), code(source, level, fname))
       case _ => throw new Error("Wrong statement: " + e)
