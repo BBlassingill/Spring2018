@@ -108,6 +108,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       case LvalExp(value)
       => code(value, level, fname)
+
       case ArrayExp(exprs)
       => var ir_stmts = ListBuffer[IRstmt]()
         var ir_exprs = ListBuffer[IRexp]()
@@ -127,6 +128,27 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
         for (expr <- exprs) yield {
           ir_stmts += Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), IntValue(beginningAddress))), code(expr, level, fname))
+          beginningAddress += 4
+        }
+
+        ESeq(Seq(ir_stmts.toList), Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))))
+
+      case RecordExp(bind_exprs)
+      => var ir_stmts = ListBuffer[IRstmt]()
+        var ir_exprs = ListBuffer[IRexp]()
+
+        val current_offset = st.lookup(fname) match {
+          case Some(FuncDeclaration(outtype, params, label, level_of_func, available_offset)) =>
+            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4)) //TODO: Not sure if this correct to do
+            available_offset
+        }
+
+        ir_stmts += Move(Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), Allocate(IntValue(bind_exprs.length)))
+
+        var beginningAddress = 0
+
+        for (bind_expr <- bind_exprs) yield {
+          ir_stmts += Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), IntValue(beginningAddress))), code(bind_expr.value, level, fname))
           beginningAddress += 4
         }
 
