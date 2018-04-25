@@ -147,6 +147,8 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
         var beginningAddress = 0
 
+        new_name("loop")
+
         for (bind_expr <- bind_exprs) yield {
           ir_stmts += Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), IntValue(beginningAddress))), code(bind_expr.value, level, fname))
           beginningAddress += 4
@@ -157,6 +159,15 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       case NullExp()
       => IntValue(0)
 
+      case CallExp(name, args)
+      =>
+        val label = st.lookup(name) match {
+          case Some(FuncDeclaration(outtype, params, label, level, available_offset)) => label
+        }
+
+        val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+        Call(label, static_link, for (arg <- args) yield code(arg, level, fname))
+      //null
       case _ => throw new Error("Wrong expression: " + e)
     }
 
@@ -246,7 +257,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         //val IRs = for (e <- exprs) yield code(e, level - 1, fname) //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
         val IRs = for (e <- exprs) yield code(e, level, fname)
 
-        val static_link = Reg("fp")
+        val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
         val returned_label = st.lookup(name) match {
           case Some(FuncDeclaration(outtype, params, label, level, available_offset)) => label
         }
@@ -297,7 +308,8 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         val exitAddress = new_name("exit")
 
         x += CJump(code(condition, level, fname), exitAddress)
-        x += Seq(List())
+        x += code(else_stmt, level, fname, exitAddress)
+        //x += Seq(List(code(else_stmt, level, fname, exitAddress)))
         x += Jump(continueAddress)
         x += Label(exitAddress)
         x += code(then_stmt, level, fname, exitAddress)
@@ -306,7 +318,21 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         Seq(x.toList)
 
       case ReturnValueSt(value)
-      => Move(Reg("a0"), code(value, level, fname))
+      => var x = ListBuffer[IRstmt]()
+        x += Move(Reg("a0"), code(value, level, fname))
+        x += Move(Reg("ra"), Mem(Binop("PLUS", Reg("fp"), IntValue(-4))))
+        x += Move(Reg("sp"), Reg("fp"))
+        x += Move(Reg("fp"), Mem(Reg("fp")))
+        x += Return()
+        Seq(x.toList)
+      //        Seq(List(Move(Reg("a0"), IntValue(9999)),
+      //          Move(Reg("ra"),
+      //            Mem(Binop("PLUS",
+      //              Reg("fp"),
+      //              IntValue(-4)))),
+      //          Move(Reg("sp"), Reg("fp")),
+      //          Move(Reg("fp"), Mem(Reg("fp"))),
+      //          Return()))
       case _ => throw new Error("Wrong statement: " + e)
     }
 
