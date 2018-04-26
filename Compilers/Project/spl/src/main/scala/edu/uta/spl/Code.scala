@@ -73,8 +73,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         val nop = op.toUpperCase()
         Binop(nop, cl, cr)
       case ArrayGen(len, v)
-      => println("created new loop in arraygen")
-        val A = allocate_variable(new_name("A"), typechecker.typecheck(e), fname)
+      => val A = allocate_variable(new_name("A"), typechecker.typecheck(e), fname)
         val L = allocate_variable(new_name("L"), IntType(), fname)
         val V = allocate_variable(new_name("V"), typechecker.typecheck(v), fname)
         val I = allocate_variable(new_name("I"), IntType(), fname)
@@ -161,13 +160,47 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       case CallExp(name, args)
       =>
-        val label = st.lookup(name) match {
-          case Some(FuncDeclaration(outtype, params, label, level, available_offset)) => label
+        val (func_label, func_level) = st.lookup(name) match {
+          case Some(FuncDeclaration(outtype, params, funclabel, funclevel, available_offset)) =>
+            (funclabel, funclevel)
         }
 
-        val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
-        Call(label, static_link, for (arg <- args) yield code(arg, level, fname))
+        var static_link: IRexp = null
+        val level_diff = func_level - level
+
+        if (level_diff == 0) {
+          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+        }
+
+        else if (level_diff == 1) {
+          static_link = Reg("fp")
+        }
+
+        else {
+          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+          for (i <- 0 to level_diff) {
+            static_link = Mem(Binop("PLUS", static_link, IntValue(-8)))
+          }
+        }
+
+        //        var static_link : IRexp = null
+        //        val level_diff = level - funclevel
+        //
+        //        if (level_diff == 0) {
+        //          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+        //          //static_link = Reg("fp")
+        //        }
+        //
+        //        else {
+        //          //static_link = Reg("else_fp")
+        //          static_link = Mem(Binop("PLUS", Reg("else fp"), IntValue(-8)))
+        //        }
+
+        //val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+        Call(func_label, static_link, for (arg <- args) yield code(arg, level, fname))
       //null
+      case UnOpExp(op, operand) //TODO: may have to come back to the unopexp case
+      => Unop(op.toUpperCase, code(operand, level, fname))
       case _ => throw new Error("Wrong expression: " + e)
     }
 
@@ -257,11 +290,48 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         //val IRs = for (e <- exprs) yield code(e, level - 1, fname) //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
         val IRs = for (e <- exprs) yield code(e, level, fname)
 
-        val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
-        val returned_label = st.lookup(name) match {
-          case Some(FuncDeclaration(outtype, params, label, level, available_offset)) => label
+        //val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+
+        val (returned_label, func_level) = st.lookup(name) match {
+          case Some(FuncDeclaration(outtype, params, label, func_level, available_offset)) => (label, func_level)
         }
 
+        var static_link: IRexp = null
+        val level_diff = func_level - level
+        println("function level: " + func_level)
+        println("level: " + level)
+        println("level diff: " + level_diff)
+
+        if (level_diff == 0) {
+          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+        }
+
+        else if (level_diff == 1) {
+          static_link = Reg("fp")
+        }
+
+        else {
+          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+          for (i <- 0 to level_diff) {
+            static_link = Mem(Binop("PLUS", static_link, IntValue(-8)))
+          }
+
+          println("resulting static link: " + static_link)
+        }
+
+
+        //        var static_link : IRexp = null
+        //        val level_diff = level - func_level
+        //
+        //        if (level_diff == 0) {
+        //          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
+        //          //static_link = Reg("fp")
+        //        }
+        //
+        //        else {
+        //          //static_link = Reg("else_fp")
+        //          static_link = Mem(Binop("PLUS", Reg("else fp"), IntValue(-8)))
+        //        }
 
         CallP(returned_label, static_link, IRs)
 
@@ -279,9 +349,6 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
               systemCall1 = SystemCall("READ_FLOAT", code(lval, level, fname))
               x += systemCall1
           }
-
-          //          val systemCall2 = SystemCall("WRITE_STRING", StringValue("\\n"))
-          //          x += systemCall2
         }
 
         Seq(x.toList)
@@ -308,8 +375,12 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         val exitAddress = new_name("exit")
 
         x += CJump(code(condition, level, fname), exitAddress)
-        x += code(else_stmt, level, fname, exitAddress)
-        //x += Seq(List(code(else_stmt, level, fname, exitAddress)))
+
+        if (else_stmt != null)
+          x += code(else_stmt, level, fname, exitAddress)
+        else
+          x += Seq(List())
+
         x += Jump(continueAddress)
         x += Label(exitAddress)
         x += code(then_stmt, level, fname, exitAddress)
@@ -325,14 +396,15 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         x += Move(Reg("fp"), Mem(Reg("fp")))
         x += Return()
         Seq(x.toList)
-      //        Seq(List(Move(Reg("a0"), IntValue(9999)),
-      //          Move(Reg("ra"),
-      //            Mem(Binop("PLUS",
-      //              Reg("fp"),
-      //              IntValue(-4)))),
-      //          Move(Reg("sp"), Reg("fp")),
-      //          Move(Reg("fp"), Mem(Reg("fp"))),
-      //          Return()))
+
+      case ReturnSt()
+      => var x = ListBuffer[IRstmt]()
+        x += Move(Reg("ra"), Mem(Binop("PLUS", Reg("fp"), IntValue(-4))))
+        x += Move(Reg("sp"), Reg("fp"))
+        x += Move(Reg("fp"), Mem(Reg("fp")))
+        x += Return()
+        Seq(x.toList)
+
       case _ => throw new Error("Wrong statement: " + e)
     }
 
@@ -373,6 +445,11 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       /* PUT YOUR CODE HERE */
       case VarDef(name, hasType, expr)
       => val access_code = allocate_variable(name, tc.typecheck(expr), fname)
+        val (offset, vartype) = st.lookup(name) match {
+          case Some(VarDeclaration(vartype, level, offset)) => (offset, vartype)
+        }
+
+        st.insert(name, VarDeclaration(vartype, level, offset))
         Move(access_code, code(expr, level, fname))
 
       case TypeDef(name, isType)
