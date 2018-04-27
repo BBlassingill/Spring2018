@@ -252,10 +252,14 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       /* PUT YOUR CODE HERE */
       case BlockSt(defs, stmts)
-      => val defIRs = for (d <- defs) yield code(d, fname, level)
+      => st.begin_scope()
+
+        val defIRs = for (d <- defs) yield code(d, fname, level)
         val stmtIRs = for (s <- stmts) yield code(s, level, fname, exit_label)
 
+        st.end_scope()
         Seq(defIRs ::: stmtIRs)
+
       case PrintSt(exprs)
       => var x = ListBuffer[IRstmt]()
         for (expr <- exprs) yield {
@@ -287,10 +291,9 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       case CallSt(name, exprs)
       =>
-        //val IRs = for (e <- exprs) yield code(e, level - 1, fname) //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
+        //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
         val IRs = for (e <- exprs) yield code(e, level, fname)
 
-        //val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
 
         val (returned_label, func_level) = st.lookup(name) match {
           case Some(FuncDeclaration(outtype, params, label, func_level, available_offset)) => (label, func_level)
@@ -298,9 +301,6 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
         var static_link: IRexp = null
         val level_diff = func_level - level
-        println("function level: " + func_level)
-        println("level: " + level)
-        println("level diff: " + level_diff)
 
         if (level_diff == 0) {
           static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
@@ -311,27 +311,11 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         }
 
         else {
-          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
-          for (i <- 0 to level_diff) {
+          static_link = Reg("fp")
+          for (i <- 0 to Math.abs(level_diff)) {
             static_link = Mem(Binop("PLUS", static_link, IntValue(-8)))
           }
-
-          println("resulting static link: " + static_link)
         }
-
-
-        //        var static_link : IRexp = null
-        //        val level_diff = level - func_level
-        //
-        //        if (level_diff == 0) {
-        //          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
-        //          //static_link = Reg("fp")
-        //        }
-        //
-        //        else {
-        //          //static_link = Reg("else_fp")
-        //          static_link = Mem(Binop("PLUS", Reg("else fp"), IntValue(-8)))
-        //        }
 
         CallP(returned_label, static_link, IRs)
 
@@ -445,11 +429,18 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       /* PUT YOUR CODE HERE */
       case VarDef(name, hasType, expr)
       => val access_code = allocate_variable(name, tc.typecheck(expr), fname)
-        val (offset, vartype) = st.lookup(name) match {
-          case Some(VarDeclaration(vartype, level, offset)) => (offset, vartype)
+        val (varoffset, vartype, varlevel) = st.lookup(name) match {
+          case Some(VarDeclaration(vartype, varlevel, varoffset)) => (varoffset, vartype, varlevel)
         }
 
-        st.insert(name, VarDeclaration(vartype, level, offset))
+        if (hasType.isInstanceOf[AnyType]) {
+          st.insert(name, VarDeclaration(vartype, varlevel, varoffset))
+        }
+
+        else {
+          st.insert(name, VarDeclaration(hasType, varlevel, varoffset))
+        }
+
         Move(access_code, code(expr, level, fname))
 
       case TypeDef(name, isType)
