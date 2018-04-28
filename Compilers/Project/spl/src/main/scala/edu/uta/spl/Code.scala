@@ -95,10 +95,13 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
       /* PUT YOUR CODE HERE */
       case IntConst(value)
       => IntValue(value)
+
       case FloatConst(value)
       => FloatValue(value)
+
       case StringConst(value)
       => StringValue(value)
+
       case BooleanConst(value)
       => if (value.equals(true))
         IntValue(1)
@@ -114,7 +117,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
         val current_offset = st.lookup(fname) match {
           case Some(FuncDeclaration(outtype, params, label, level_of_func, available_offset)) =>
-            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4)) //TODO: Not sure if this correct to do
+            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4))
             available_offset
         }
 
@@ -134,11 +137,10 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       case RecordExp(bind_exprs)
       => var ir_stmts = ListBuffer[IRstmt]()
-        var ir_exprs = ListBuffer[IRexp]()
 
         val current_offset = st.lookup(fname) match {
           case Some(FuncDeclaration(outtype, params, label, level_of_func, available_offset)) =>
-            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4)) //TODO: Not sure if this correct to do
+            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4))
             available_offset
         }
 
@@ -183,24 +185,35 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
           }
         }
 
-        //        var static_link : IRexp = null
-        //        val level_diff = level - funclevel
-        //
-        //        if (level_diff == 0) {
-        //          static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
-        //          //static_link = Reg("fp")
-        //        }
-        //
-        //        else {
-        //          //static_link = Reg("else_fp")
-        //          static_link = Mem(Binop("PLUS", Reg("else fp"), IntValue(-8)))
-        //        }
-
-        //val static_link = Mem(Binop("PLUS", Reg("fp"), IntValue(-8)))
         Call(func_label, static_link, for (arg <- args) yield code(arg, level, fname))
-      //null
-      case UnOpExp(op, operand) //TODO: may have to come back to the unopexp case
+
+      case UnOpExp(op, operand)
       => Unop(op.toUpperCase, code(operand, level, fname))
+
+      case TupleExp(exprs)
+      => var ir_stmts = ListBuffer[IRstmt]()
+        var ir_exprs = ListBuffer[IRexp]()
+
+        val current_offset = st.lookup(fname) match {
+          case Some(FuncDeclaration(outtype, params, label, level_of_func, available_offset)) =>
+            st.replace(fname, FuncDeclaration(outtype, params, label, level_of_func, available_offset - 4))
+            available_offset
+        }
+
+        ir_stmts += Move(Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), Allocate(IntValue(exprs.length)))
+        ir_stmts += Move(Mem(Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset)))), IntValue(exprs.length))
+
+        var beginningAddress = 4
+
+        new_name("loop")
+
+        for (expr <- exprs) yield {
+          ir_stmts += Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))), IntValue(beginningAddress))), code(expr, level, fname))
+          beginningAddress += 4
+        }
+
+        ESeq(Seq(ir_stmts.toList), Mem(Binop("PLUS", Reg("fp"), IntValue(current_offset))))
+
       case _ => throw new Error("Wrong expression: " + e)
     }
 
@@ -219,13 +232,17 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       /* PUT YOUR CODE HERE */
       case ArrayDeref(array, index)
-      =>
-        val codeForIndex = code(index, level, fname)
+      => val codeForIndex = code(index, level, fname)
         val returnedCode = code(array, level, fname)
         Mem(Binop("PLUS", returnedCode, Binop("TIMES", Binop("PLUS", codeForIndex, IntValue(1)), IntValue(4))))
 
       case Var(name)
-      => access_variable(name, level) //TODO: Not sure if this level needs to consider variables that were declared in higher stack frames
+      => access_variable(name, level)
+
+      case TupleDeref(tuple, index)
+      => val returnedCode = code(tuple, level, fname)
+        Mem(Binop("PLUS", returnedCode, Binop("TIMES", Binop("PLUS", IntValue(index), IntValue(1)), IntValue(4))))
+
       case _ => throw new Error("Wrong statement: " + e)
     }
 
@@ -290,9 +307,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         Seq(x.toList)
 
       case CallSt(name, exprs)
-      =>
-        //TODO: Not sure if level needs to be calculated since these are passed in arguments. Using level-1 for now
-        val IRs = for (e <- exprs) yield code(e, level, fname)
+      => val IRs = for (e <- exprs) yield code(e, level, fname)
 
 
         val (returned_label, func_level) = st.lookup(name) match {
@@ -361,7 +376,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         x += CJump(code(condition, level, fname), exitAddress)
 
         if (else_stmt != null)
-          x += code(else_stmt, level, fname, exitAddress)
+          x += code(else_stmt, level, fname, continueAddress)
         else
           x += Seq(List())
 
@@ -388,6 +403,12 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
         x += Move(Reg("fp"), Mem(Reg("fp")))
         x += Return()
         Seq(x.toList)
+
+      case LoopSt(body)
+      => code(body, level, fname, exit_label)
+
+      case ExitSt()
+      => Jump(exit_label)
 
       case _ => throw new Error("Wrong statement: " + e)
     }
@@ -445,7 +466,7 @@ class Code(tc: TypeChecker) extends CodeGenerator(tc) {
 
       case TypeDef(name, isType)
       => st.insert(name, TypeDeclaration(isType))
-        Seq(List()) //TODO: Come back and expand the typedef case
+        Seq(List())
 
 
       case _ => throw new Error("Wrong statement: " + e)
