@@ -40,9 +40,9 @@ class RegisterPool {
   /** recycle (put back into the register pool) the register reg (if is temporary) */
   def recycle(reg: Register) {
     if (available_registers.contains(reg))
-      throw new Error("*** Register has already been recycled: " + reg)
-    if (is_temporary(reg))
-      available_registers = reg :: available_registers
+    //throw new Error("*** Register has already been recycled: " + reg)
+      if (is_temporary(reg))
+        available_registers = reg :: available_registers
   }
 
   /** return the list of all temporary registers currently in use */
@@ -158,6 +158,54 @@ class Mips extends MipsGenerator {
       /* PUT YOUR CODE HERE */
       case Reg(name)
       => Register("$" + name)
+
+      //      case Binop(op, x, y)
+      //      => val label = new_label()
+      //        val left = emit(x)
+      //        val reg = left
+      //        mips("beq", left + ", 0, " + label)
+      //        val right = emit(y)
+      //        mips("move", left + ", " + right)
+      //        mips_label(label)
+      //        rpool.recycle(right)
+      //        reg
+      //
+      //      //Register("testBinop")
+
+      case Binop("PLUS", IntValue(x), Binop(op, left, right))
+      => val temp1 = emit(IntValue(x))
+        val temp2 = emit(Binop(op, left, right))
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        rpool.recycle(temp2)
+        temp1
+
+
+      case Binop(op, Mem(Binop("PLUS", Reg("fp"), IntValue(num))), right)
+      => val reg1 = emit(Mem(Binop("PLUS", Reg("fp"), IntValue(num))))
+        val reg2 = emit(right)
+        val temp = reg1
+
+        if (op.equals("MINUS"))
+          mips("subu", reg1 + ", " + reg1 + ", " + reg2)
+
+        else if (op.equals("PLUS"))
+          mips("addu", reg1 + ", " + reg1 + ", " + reg2)
+
+        else if (op.equals("TIMES"))
+          mips("mul", reg1 + ", " + reg1 + ", " + reg2)
+
+        else
+          error("a binop isn't covered")
+
+        rpool.recycle(reg2)
+        rpool.recycle(reg1)
+        temp
+
+      case IntValue(n)
+      => val temp = rpool.get()
+        mips("li", temp + ", " + n)
+        temp
+
       case _ => throw new Error("*** Unknown IR: " + e)
     }
   }
@@ -187,37 +235,112 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
 
       case Move(Reg(destination), Mem(Binop(op, Reg(source), IntValue(n))))
-      => mips("lw", destination + ", " + n + "($" + source + ")")
+      => mips("lw", "$" + destination + ", " + n + "($" + source + ")")
 
       case Move(Reg(destination), Mem(Reg(source)))
       => mips("lw", "$" + destination + ", ($" + source + ")")
+
+      case Jump(name)
+      => mips("j", name)
+
+      case CJump(Binop("GT", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sgt", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+
+      case CallP(name, static_link, args) //TODO: May need to come back and fix register recycling issue
+      => val args_leng = args.length
+        var offset = 4 * args_leng
+        mips("subu", "$sp, $sp, " + offset)
+
+        val temp1 = emit(args.head)
+
+        if (rpool.used().contains(temp1))
+          rpool.recycle(temp1)
+
+        mips("sw", temp1 + ", " + offset + "($sp)")
+
+        for (arg <- args.slice(1, args_leng)) {
+          offset -= 4
+          val temp2 = emit(arg)
+          rpool.recycle(temp2)
+          mips("sw", temp1 + ", " + offset + "($sp)")
+        }
+
+        val temp3 = emit(static_link)
+
+        mips("move", "$v0, " + temp3)
+        mips("jal", name)
+        mips("addu", "$sp, $sp, " + (args_leng * 4))
+
+        if (rpool.used().contains(temp1))
+          rpool.recycle(temp1)
+
+        if (rpool.used().contains(temp1))
+          rpool.recycle(temp3)
+
 
       case Label(label)
       => mips_label(label)
 
 
       case SystemCall("WRITE_STRING", StringValue(str))
-      => //val data = emit(arg)
-        str match {
-          case "\\n" =>
-            mips("li", "$v0, " + 4)
-            mips("la", "$a0, ENDL_")
-            mips("syscall")
-          case _ =>
-            val temp = rpool.get()
-            val label = new_label()
-            mips(".data")
-            mips(".align", "2")
-            mips_label(label)
-            mips(".asciiz", "\"" + str + "\"")
-            mips(".text")
-            mips("la", "$t0, " + label)
-            mips("move", "$a0, " + temp)
-            mips("li", "$v0, " + 4)
-            mips("syscall")
+      => str match {
+        case "\\n" =>
+          mips("li", "$v0, " + 4)
+          mips("la", "$a0, ENDL_")
+          mips("syscall")
+        case _ =>
+          val temp = rpool.get()
+          val label = new_label()
+          mips(".data")
+          mips(".align", "2")
+          mips_label(label)
+          mips(".asciiz", "\"" + str + "\"")
+          mips(".text")
+          mips("la", "$t0, " + label)
+          mips("move", "$a0, " + temp)
+          mips("li", "$v0, " + 4)
+          mips("syscall")
 
-            rpool.recycle(temp)
-        }
+          rpool.recycle(temp)
+      }
+
+      case SystemCall("WRITE_INT", arg)
+      => val reg = emit(arg)
+        mips("move", "$a0, " + reg)
+        mips("li", "$v0, 1")
+        mips("syscall")
+
+        rpool.recycle(reg)
+
+      case SystemCall("READ_INT", Mem(Binop("PLUS", Reg("fp"), IntValue(n))))
+      => val temp = rpool.get()
+        val temp2 = rpool.get()
+        mips("li", temp + ", " + n)
+        mips("addu", temp2 + ", $fp, " + temp)
+        mips("li", "$v0, 5")
+        mips("syscall")
+        mips("sw", "$v0, (" + temp2 + ")")
+
+        rpool.recycle(temp)
+        rpool.recycle(temp)
+
+      case SystemCall("READ_INT", arg)
+      => val reg = emit(arg)
+        val temp = rpool.get()
+        mips("addu", temp + ", $fp, " + reg)
+        mips("li", "$v0, 5")
+        mips("syscall")
+        mips("sw", "$v0, (" + temp + ")")
+
+        rpool.recycle(reg)
+        rpool.recycle(temp)
 
       case Return()
       => mips("jr", "$ra")
