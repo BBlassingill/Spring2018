@@ -40,7 +40,7 @@ class RegisterPool {
   /** recycle (put back into the register pool) the register reg (if is temporary) */
   def recycle(reg: Register) {
     if (available_registers.contains(reg))
-    //throw new Error("*** Register has already been recycled: " + reg)
+      throw new Error("*** Register has already been recycled: " + reg)
       if (is_temporary(reg))
         available_registers = reg :: available_registers
   }
@@ -177,29 +177,147 @@ class Mips extends MipsGenerator {
         val temp2 = emit(Binop(op, left, right))
         mips("addu", temp1 + ", " + temp1 + ", " + temp2)
         rpool.recycle(temp2)
+
         temp1
 
 
       case Binop(op, Mem(Binop("PLUS", Reg("fp"), IntValue(num))), right)
       => val reg1 = emit(Mem(Binop("PLUS", Reg("fp"), IntValue(num))))
         val reg2 = emit(right)
-        val temp = reg1
 
-        if (op.equals("MINUS"))
+
+        if (op.equals("MINUS")) {
           mips("subu", reg1 + ", " + reg1 + ", " + reg2)
+          rpool.recycle(reg2)
+        }
 
-        else if (op.equals("PLUS"))
+
+        else if (op.equals("PLUS")) {
           mips("addu", reg1 + ", " + reg1 + ", " + reg2)
+          rpool.recycle(reg2)
+        }
 
-        else if (op.equals("TIMES"))
+
+        else if (op.equals("TIMES")) {
           mips("mul", reg1 + ", " + reg1 + ", " + reg2)
+          rpool.recycle(reg2)
+        }
+
+
+        else if (op.equals("LT")) {
+          mips("slt", reg1 + ", " + reg1 + ", " + reg2)
+        }
+
 
         else
           error("a binop isn't covered")
 
-        rpool.recycle(reg2)
-        rpool.recycle(reg1)
-        temp
+        //TODO: I guess we don't recycle the second register??
+        reg1
+
+
+      //      case Binop("LT", Mem(Binop("PLUS", Mem(Binop("PLUS", left, right)), right)), right)
+      //      case Binop("LT", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(x), IntValue(n1))), y2)), right)
+      //      =>
+      //
+      //        val temp1 = rpool.get()
+      //        //        mips("x: " + x)
+      //        //mips("y1: " + y1)
+      //        //        mips("y2: " + y2)
+      //        //        mips("right: " + right)
+      //
+      //        //        mips("emitting x:")
+      //        mips("lw", temp1 + ", " + n1 + "($" + x + ")")
+      //        rpool.recycle(temp1)
+      //        emit(y2)
+      //        //        mips("emitting y1:")
+      //        //emit(y1)
+      //        //        mips("emitting y2:")
+      //        emit(right)
+      //      //        mips("emitting right: ")
+      //      //        emit(right)
+      //
+      //      //      case Binop("TIMES", left, right)
+      //      //      => emit(left)
+      //      //        emit(right)
+      //      case Binop("TIMES", Binop("PLUS", Mem(Binop("PLUS", Reg(register), IntValue(n))), int1), IntValue(n1))
+      //      => mips("about to process times")
+      //        val temp1 = rpool.get()
+      //        mips("lw", temp1 + ", " + n + "($" + register + ")")
+      //        val temp2 = emit(int1)
+      //        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+      //        //rpool.recycle(temp2)
+      ////        rpool.recycle(temp1)
+      //        mips("li", temp2 + ", " + n1)
+      //        mips("mul", temp1 + ", " + temp1 + ", " + temp2)
+      //        temp1
+
+      case Binop("LT", left, right)
+      =>
+        val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        println("temp1: " + temp1)
+        println("temp2: " + temp2)
+        rpool.recycle(temp2)
+
+        temp1
+
+      case Mem(address)
+      => mips("code for Mem(Binop(PLUS, Mem(Binop) etc")
+        val temp1 = emit(address)
+        mips("returned register: " + temp1)
+
+        temp1
+
+      //      case Binop("TIMES", left, right)
+      //        =>
+      //        val temp = emit(left)
+      //
+      //        rpool.recycle(temp)
+      //        val temp2 = emit(right)
+      //        mips("mul", temp + ", " + temp + ", " + temp2)
+      //
+      //        rpool.recycle(temp)
+      //        temp2
+
+      //      case CJump(Binop("AND",
+      //                      Binop("LT", Mem(Binop("PLUS", Reg("fp"), IntValue(n1))), IntValue(n2)),
+      //                      Binop("LT", Mem(Binop("PLUS",Mem(Binop("PLUS", Reg("fp"), IntValue(n3))),
+      //                      Binop("TIMES",Binop("PLUS", Mem(Binop("PLUS",Reg("fp"),IntValue(n4))),
+      //                      IntValue(n5)),IntValue(n6)))), IntValue(n7))), label)
+      //        => emit(Binop("LT", Mem(Binop("PLUS", Reg("fp"), IntValue(n1))), IntValue(n2)))
+      //
+      //      case Binop("AND", Binop("LT", left1, right1), Binop("LT", left2, right2))
+      //        => emit(left1)
+      //        emit(left2)
+      case Binop("TIMES", Binop("PLUS", left, right), right2)
+      =>
+        val temp1 = emit(left)
+        val temp2 = emit(right)
+        rpool.recycle(temp2)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        //        println("available registers before right2: " + rpool.available_registers)
+        emit(right2)
+        mips("mul", temp1 + ", " + temp1 + ", " + temp2)
+        //        println("available registers after right2: " + rpool.available_registers)
+        rpool.recycle(temp2)
+        //        rpool.recycle(temp3)
+
+        temp1
+
+      case Allocate(size)
+      => val temp1 = emit(size)
+        val temp2 = rpool.get()
+
+        mips("li", temp2 + ", " + 4)
+        mips("mul", temp1 + ", " + temp1 + ", " + temp2)
+        mips("move", temp2 + ", $gp")
+        mips("addu", "$gp, $gp, " + temp1)
+
+        rpool.recycle(temp1)
+
+        temp2
 
       case IntValue(n)
       => val temp = rpool.get()
@@ -219,6 +337,14 @@ class Mips extends MipsGenerator {
         rpool.recycle(src)
 
       /* PUT YOUR CODE HERE */
+      case Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(destination), IntValue(x))), IntValue(y))), source)
+      => val temp1 = rpool.get()
+        mips("lw", temp1 + ", " + x + "($" + destination + ")")
+        val temp2 = emit(source)
+        mips("sw", temp2 + ", " + y + "(" + temp1 + ")")
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+
       case Move(Reg(destination), Reg(source))
       => mips("move", "$" + destination + ", " + "$" + source)
 
@@ -228,9 +354,11 @@ class Mips extends MipsGenerator {
       case Move(Reg(destination), Binop(op, Reg(source), IntValue(n)))
       => val temp = rpool.get()
         val temp2 = rpool.get()
+
         mips("li", temp + ", " + n)
         mips("addu", temp2 + ", " + "$" + source + ", " + temp)
         mips("move", "$" + destination + ", " + temp2)
+
         rpool.recycle(temp)
         rpool.recycle(temp2)
 
@@ -239,6 +367,14 @@ class Mips extends MipsGenerator {
 
       case Move(Reg(destination), Mem(Reg(source)))
       => mips("lw", "$" + destination + ", ($" + source + ")")
+
+      case Move(Mem(destination_address), source)
+      => val temp1 = emit(destination_address)
+        val temp2 = emit(source)
+        mips("sw", temp2 + ", (" + temp1 + ")")
+        rpool.recycle(temp1)
+        temp2
+
 
       case Jump(name)
       => mips("j", name)
@@ -253,7 +389,25 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp1)
         rpool.recycle(temp2)
 
-      case CallP(name, static_link, args) //TODO: May need to come back and fix register recycling issue
+      case CJump(Unop("NOT", operand), label)
+      => val temp1 = emit(operand)
+        mips("seq", temp1 + ", " + temp1 + ", 0")
+        mips("beq", temp1 + ", 1, " + label)
+
+        rpool.recycle(temp1)
+
+      case CJump(Binop("AND", left, right), label)
+      => val temp1 = emit(left)
+        val label1 = new_label()
+        mips("beq", temp1 + ", 0" + ", " + label1)
+        val temp2 = emit(right)
+        mips("beq", temp2 + " 1, " + label)
+
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+
+
+      case CallP(name, static_link, args)
       => val args_leng = args.length
         var offset = 4 * args_leng
         mips("subu", "$sp, $sp, " + offset)
@@ -329,7 +483,7 @@ class Mips extends MipsGenerator {
         mips("sw", "$v0, (" + temp2 + ")")
 
         rpool.recycle(temp)
-        rpool.recycle(temp)
+        rpool.recycle(temp2)
 
       case SystemCall("READ_INT", arg)
       => val reg = emit(arg)
