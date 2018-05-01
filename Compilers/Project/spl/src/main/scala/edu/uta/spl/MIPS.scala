@@ -41,8 +41,8 @@ class RegisterPool {
   def recycle(reg: Register) {
     if (available_registers.contains(reg))
       throw new Error("*** Register has already been recycled: " + reg)
-      if (is_temporary(reg))
-        available_registers = reg :: available_registers
+    if (is_temporary(reg))
+      available_registers = reg :: available_registers
   }
 
   /** return the list of all temporary registers currently in use */
@@ -249,13 +249,23 @@ class Mips extends MipsGenerator {
 
         mips("lw", temp2 + ", " + n1 + "($" + address1 + ")")
         mips("lw", temp3 + ", " + n2 + "($" + address2 + ")")
-        mips("li", temp4 + ", " + 1)
+        mips("li", temp4 + ", " + n3)
         mips("addu", temp3 + ", " + temp3 + ", " + temp4)
-        mips("li", temp4 + ", " + 4)
+        mips("li", temp4 + ", " + n4)
         mips("mul", temp3 + ", " + temp3 + ", " + temp4)
         mips("addu", temp2 + ", " + temp2 + ", " + temp3)
         mips("lw", temp1 + ", (" + temp2 + ")")
 
+        temp1
+
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address), IntValue(n1))), IntValue(n2)))
+      => val temp1 = rpool.get()
+        val temp2 = rpool.get()
+
+        mips("lw", temp2 + ", " + n1 + "($" + address + ")")
+        mips("lw", temp1 + ", " + n2 + "(" + temp2 + ")")
+
+        rpool.recycle(temp2)
         temp1
 
       case _ => throw new Error("*** Unknown IR: " + e)
