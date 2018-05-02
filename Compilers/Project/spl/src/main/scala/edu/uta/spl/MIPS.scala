@@ -203,6 +203,23 @@ class Mips extends MipsGenerator {
         rpool.recycle(reg2)
         reg1
 
+      case Binop("TIMES", Binop("PLUS", Mem(address), IntValue(n2)), IntValue(n3))
+      => val temp1 = emit(address)
+        val temp2 = rpool.get()
+        mips("li", temp2 + ", " + n2)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        mips("li", temp2 + ", " + n3)
+        mips("mul", temp1 + ", " + temp1 + ", " + temp2)
+
+        rpool.recycle(temp2)
+
+        temp1
+
+      case Binop("PLUS", Reg(address), IntValue(n))
+      => val temp1 = rpool.get()
+        mips("lw", temp1 + ", " + n + "($" + address + ")")
+        temp1
+
 
       case Allocate(size)
       => val temp1 = emit(size)
@@ -269,6 +286,105 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp4)
 
         temp1
+
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address), IntValue(n1))), IntValue(n2))), Binop("TIMES", Binop("PLUS", IntValue(n3), IntValue(n4)), IntValue(n5))))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+      val temp4 = rpool.get() //t3
+
+        mips("lw", temp3 + ", " + n1 + "($" + address + ")")
+        mips("lw", temp2 + ", " + n2 + "(" + temp3 + ")")
+        mips("li", temp3 + ", " + n3)
+        mips("li", temp4 + ", " + n4)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n5)
+        mips("mul", temp3 + ", " + temp3 + ", " + temp4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("lw", temp1 + ", (" + temp2 + ")")
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp3)
+        rpool.recycle(temp4)
+
+        temp1
+
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), IntValue(n2))), Binop("TIMES", Binop("PLUS", Mem(Binop("PLUS", Reg(address2), IntValue(n3))), IntValue(n4)), IntValue(n5))))
+      => val temp1 = rpool.get()
+        val temp2 = rpool.get()
+        val temp3 = rpool.get()
+        val temp4 = rpool.get()
+
+        mips("lw", temp3 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp2 + ", " + n2 + "(" + temp3 + ")")
+        mips("lw", temp3 + ", " + n3 + "($" + address2 + ")")
+        mips("li", temp4 + ", " + n4)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n5)
+        mips("mul", temp3 + ", " + temp3 + ", " + temp4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("lw", temp1 + ", (" + temp2 + ")")
+
+        rpool.recycle(temp4)
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+
+        temp1
+
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), IntValue(n2))), Binop("TIMES", Binop("PLUS", Binop("PLUS", Binop("MINUS", Mem(Binop("PLUS", Reg(address2), IntValue(n3))), Mem(Binop("PLUS", Reg(address3), IntValue(n4)))), IntValue(n5)), IntValue(n6)), IntValue(n7))))
+      => val temp1 = rpool.get()
+        val temp2 = rpool.get()
+        val temp3 = rpool.get()
+        val temp4 = rpool.get()
+        val temp5 = rpool.get()
+
+        mips("lw", temp3 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp2 + ", " + n2 + "(" + temp3 + ")")
+        mips("lw", temp3 + ", " + n3 + "($" + address2 + ")")
+        mips("lw", temp4 + ", " + n4 + "($" + address3 + ")")
+        mips("subu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n5)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n6)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n7)
+        mips("mul", temp3 + ", " + temp3 + ", " + temp4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("lw", temp1 + ", (" + temp2 + ")")
+
+
+        rpool.recycle(temp5)
+        rpool.recycle(temp4)
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+
+        temp1
+
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), IntValue(n2))), Binop("TIMES", Binop("PLUS", Binop("PLUS", Mem(Binop("PLUS", Reg(address2), IntValue(n3))), Mem(Binop("PLUS", Reg(address3), IntValue(n4)))), IntValue(n5)), IntValue(n6))))
+      => val temp1 = rpool.get() //t1
+      val temp2 = rpool.get() //t2
+      val temp3 = rpool.get() //t3
+      val temp4 = rpool.get() //t4
+
+        mips("lw", temp3 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp2 + ", " + n2 + "(" + temp3 + ")")
+        mips("lw", temp3 + ", " + n3 + "($" + address2 + ")")
+        mips("lw", temp4 + ", " + n4 + "($" + address3 + ")")
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n5)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n6)
+        mips("mul", temp3 + ", " + temp3 + ", " + temp4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("lw", temp1 + ", (" + temp2 + ")")
+
+
+        rpool.recycle(temp4)
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+
+        temp1
+
 
       case Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address), IntValue(n1))), IntValue(n2)))
       => val temp1 = rpool.get()
@@ -343,6 +459,124 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         rpool.recycle(temp3)
         rpool.recycle(temp4)
+
+      case Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), IntValue(n2))), Binop("TIMES", Binop("PLUS", Mem(Binop("PLUS", Reg(address2), IntValue(n3))), IntValue(n4)), IntValue(n5)))), IntValue(n6))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+
+        mips("lw", temp2 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp1 + ", " + n2 + "(" + temp2 + ")")
+        mips("lw", temp2 + ", " + n3 + "($" + address2 + ")")
+        mips("li", temp3 + ", " + n4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n5)
+        mips("mul", temp2 + ", " + temp2 + ", " + temp3)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        mips("li", temp2 + ", " + n6)
+        mips("sw", temp2 + ", (" + temp1 + ")")
+
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), IntValue(n2))), Binop("TIMES", Binop("PLUS", Binop("PLUS", Binop("MINUS", Mem(Binop("PLUS",
+      Reg(address2),
+      IntValue(n3))),
+      Mem(Binop("PLUS",
+      Reg(address3),
+      IntValue(n4)))),
+      IntValue(n5)),
+      IntValue(n6)),
+      IntValue(n7)))),
+      IntValue(n8))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+
+        mips("lw", temp2 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp1 + ", " + n2 + "(" + temp2 + ")")
+        mips("lw", temp2 + ", " + n3 + "($" + address2 + ")")
+        mips("lw", temp3 + ", " + n4 + "($" + address3 + ")")
+        mips("subu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n5)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n6)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n7)
+        mips("mul", temp2 + ", " + temp2 + ", " + temp3)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        mips("li", temp2 + ", " + n8)
+        mips("sw", temp2 + ", (" + temp1 + ")")
+
+
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case Move(Mem(Binop("PLUS",
+      Mem(Binop("PLUS",
+      Mem(Binop("PLUS", Reg(address1), IntValue(n1))),
+      IntValue(n2))),
+      Binop("TIMES",
+      Binop("PLUS",
+      Binop("PLUS",
+      Mem(Binop("PLUS", Reg(address2), IntValue(n3))),
+      Mem(Binop("PLUS", Reg(address3), IntValue(n4)))),
+      IntValue(n5)),
+      IntValue(n6)))),
+      IntValue(n7))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+
+        mips("lw", temp2 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp1 + ", " + n2 + "(" + temp2 + ")")
+        mips("lw", temp2 + ", " + n3 + "($" + address2 + ")")
+        mips("lw", temp3 + ", " + n4 + "($" + address3 + ")")
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n5)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n6)
+        mips("mul", temp2 + ", " + temp2 + ", " + temp3)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        mips("li", temp2 + ", " + n7)
+        mips("sw", temp2 + ", (" + temp1 + ")")
+
+
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case Move(Mem(Binop("PLUS",
+      Mem(Binop("PLUS",
+      Mem(Binop("PLUS", Reg(address1), IntValue(n1))),
+      IntValue(n2))),
+      Binop("TIMES",
+      Binop("PLUS",
+      Mem(Binop("PLUS", Reg(address2), IntValue(n3))),
+      IntValue(n4)),
+      IntValue(n5)))),
+      Mem(Binop("PLUS", Reg(address3), IntValue(n6))))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+
+        mips("lw", temp2 + ", " + n1 + "($" + address1 + ")")
+        mips("lw", temp1 + ", " + n2 + "(" + temp2 + ")")
+        mips("lw", temp2 + ", " + n3 + "($" + address2 + ")")
+        mips("li", temp3 + ", " + n4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n5)
+        mips("mul", temp2 + ", " + temp2 + ", " + temp3)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        mips("lw", temp2 + ", " + n6 + "($" + address3 + ")")
+        mips("sw", temp2 + ", (" + temp1 + ")")
+
+
+        rpool.recycle(temp3)
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
 
 
       case Move(Reg(destination), Reg(source))
@@ -464,6 +698,27 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp4)
         rpool.recycle(temp5)
 
+      case CJump(Binop("AND", Binop("AND", left, right1), right2), label)
+      => val new_label1 = new_label()
+        val new_label2 = new_label()
+        val temp1 = emit(left)
+
+        mips("beq", temp1 + ", " + 0 + ", " + new_label2)
+        val temp2 = emit(right1)
+
+        mips("move", temp1 + ", " + temp2)
+        mips_label(new_label2)
+        mips("beq", temp1 + ", 0, " + new_label1)
+        rpool.recycle(temp2)
+        val temp3 = emit(right2)
+
+        mips("move", temp1 + ", " + temp3)
+        mips_label(new_label1)
+        mips("beq", temp1 + ", 1, " + label)
+
+        rpool.recycle(temp3)
+        rpool.recycle(temp1)
+
       case CJump(Binop("NEQ", left, right), label)
       => val temp1 = emit(left)
         val temp2 = emit(right)
@@ -492,9 +747,27 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp1)
         rpool.recycle(temp2)
 
+      case CJump(Binop("GEQ", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sge", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", " + 1 + ", " + label)
+
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+
       case CJump(IntValue(n), label)
       => val temp1 = emit(IntValue(n))
         mips("beq", temp1 + ", " + 1 + ", " + label)
+
+        rpool.recycle(temp1)
+
+      case CallP(name, static_link, List())
+      => val temp1 = emit(static_link)
+
+        mips("move", "$v0, " + temp1)
+        mips("jal", name)
 
         rpool.recycle(temp1)
 
