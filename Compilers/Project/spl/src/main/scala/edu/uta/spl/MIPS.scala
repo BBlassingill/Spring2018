@@ -256,6 +256,11 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         temp1
 
+      case Unop("MINUS", IntValue(n))
+      => val temp1 = emit(IntValue(n))
+        mips("neg", temp1 + ", " + temp1)
+        temp1
+
       case _ => throw new Error("*** Unknown IR: " + e)
     }
   }
@@ -331,6 +336,12 @@ class Mips extends MipsGenerator {
 
       case Move(Reg(destination), IntValue(n))
       => mips("li", "$" + destination + ", " + n)
+
+      case Move(Reg(destination), source)
+      => val temp1 = emit(source)
+        mips("move", "$" + destination + ", " + temp1)
+
+        rpool.recycle(temp1)
 
       case Jump(name)
       => mips("j", name)
@@ -416,6 +427,22 @@ class Mips extends MipsGenerator {
 
         rpool.recycle(temp1)
         rpool.recycle(temp2)
+
+      case CJump(Binop("LEQ", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sle", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", " + 1 + ", " + label)
+
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+
+      case CJump(IntValue(n), label)
+      => val temp1 = emit(IntValue(n))
+        mips("beq", temp1 + ", " + 1 + ", " + label)
+
+        rpool.recycle(temp1)
 
       case CallP(name, static_link, args)
       => val args_leng = args.length
