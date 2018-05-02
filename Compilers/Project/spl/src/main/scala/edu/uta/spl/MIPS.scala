@@ -222,14 +222,7 @@ class Mips extends MipsGenerator {
         mips("li", temp + ", " + n)
         temp
 
-      case Mem(Binop("PLUS",
-      Mem(Binop("PLUS", Reg(address1), IntValue(n1))),
-      Binop("TIMES",
-      Binop("PLUS",
-      Mem(Binop("PLUS", Reg(address2), IntValue(n2))),
-      IntValue(n3)),
-      IntValue(n4))))
-
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), Binop("TIMES", Binop("PLUS", Mem(Binop("PLUS", Reg(address2), IntValue(n2))), IntValue(n3)), IntValue(n4))))
       => val temp1 = rpool.get() //t0
       val temp2 = rpool.get() //t1
       val temp3 = rpool.get() //t2
@@ -243,6 +236,37 @@ class Mips extends MipsGenerator {
         mips("mul", temp3 + ", " + temp3 + ", " + temp4)
         mips("addu", temp2 + ", " + temp2 + ", " + temp3)
         mips("lw", temp1 + ", (" + temp2 + ")")
+
+        temp1
+
+      case Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address), IntValue(n1))), Binop("TIMES", Binop("PLUS", IntValue(n2), IntValue(n3)), IntValue(n4)))), Binop("TIMES",
+      Binop("PLUS", IntValue(n5), IntValue(n6)),
+      IntValue(n7))))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+      val temp4 = rpool.get() //t3
+      val temp5 = rpool.get() //t4
+
+        mips("lw", temp3 + ", " + n1 + "($" + address + ")")
+        mips("li", temp4 + ", " + n2)
+        mips("li", temp5 + ", " + n3)
+        mips("addu", temp4 + ", " + temp4 + ", " + temp5)
+        mips("li", temp5 + ", " + n4)
+        mips("mul", temp4 + ", " + temp4 + ", " + temp5)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("lw", temp2 + ", (" + temp3 + ")")
+        mips("li", temp3 + ", " + n5)
+        mips("li", temp4 + ", " + n6)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n7)
+        mips("mul", temp3 + ", " + temp3 + ", " + temp4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("lw", temp1 + ", " + "(" + temp2 + ")")
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp3)
+        rpool.recycle(temp4)
 
         temp1
 
@@ -290,6 +314,36 @@ class Mips extends MipsGenerator {
         mips("lw", temp1 + ", " + n2 + "(" + temp2 + ")")
         mips("lw", temp2 + ", " + n4 + "($" + address2 + ")")
         mips("sw", temp2 + ", " + n3 + "(" + temp1 + ")")
+
+      case Move(Mem(Binop("PLUS", Mem(Binop("PLUS", Mem(Binop("PLUS", Reg(address1), IntValue(n1))), Binop("TIMES", Binop("PLUS", IntValue(n2), IntValue(n3)), IntValue(n4)))),
+      Binop("TIMES", Binop("PLUS", IntValue(n5), IntValue(n6)), IntValue(n7)))), IntValue(n8))
+      => val temp1 = rpool.get() //t0
+      val temp2 = rpool.get() //t1
+      val temp3 = rpool.get() //t2
+      val temp4 = rpool.get() //t3
+
+        mips("lw", temp2 + ", " + n1 + "($" + address1 + ")")
+        mips("li", temp3 + ", " + n2)
+        mips("li", temp4 + ", " + n3)
+        mips("addu", temp3 + ", " + temp3 + ", " + temp4)
+        mips("li", temp4 + ", " + n4)
+        mips("mul", temp3 + ", " + temp3 + ", " + temp4)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("lw", temp1 + ", (" + temp2 + ")")
+        mips("li", temp2 + ", " + n5)
+        mips("li", temp3 + ", " + n6)
+        mips("addu", temp2 + ", " + temp2 + ", " + temp3)
+        mips("li", temp3 + ", " + n7)
+        mips("mul", temp2 + ", " + temp2 + ", " + temp3)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+        mips("li", temp2 + ", " + n8)
+        mips("sw", temp2 + ", (" + temp1 + ")")
+
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+        rpool.recycle(temp3)
+        rpool.recycle(temp4)
+
 
       case Move(Reg(destination), Reg(source))
       => mips("move", "$" + destination + ", " + "$" + source)
@@ -509,6 +563,7 @@ class Mips extends MipsGenerator {
         mips("syscall")
 
         rpool.recycle(reg)
+
 
       case SystemCall("READ_INT", Mem(Binop("PLUS", Reg("fp"), IntValue(n))))
       => val temp = rpool.get()
