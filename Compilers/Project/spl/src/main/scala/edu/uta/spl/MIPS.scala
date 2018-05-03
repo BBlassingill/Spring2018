@@ -266,6 +266,19 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         temp1
 
+      case Binop("PLUS", Binop("PLUS", Mem(address1), Mem(address2)), right)
+      => val temp1 = emit(Mem(address1))
+        val temp2 = emit(Mem(address2))
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+
+        rpool.recycle(temp2)
+        val temp3 = emit(right)
+        mips("addu", temp1 + ", " + temp1 + ", " + temp3)
+
+        rpool.recycle(temp3)
+
+        temp1
+
 
       case Binop("PLUS", Reg(address), IntValue(n))
       => val temp1 = rpool.get()
@@ -705,6 +718,16 @@ class Mips extends MipsGenerator {
         val temp2 = emit(right)
 
         mips("sgt", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp1)
+        rpool.recycle(temp2)
+
+      case CJump(Binop("LT", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("slt", temp1 + ", " + temp1 + ", " + temp2)
         mips("beq", temp1 + ", 1" + ", " + label)
 
         rpool.recycle(temp1)
