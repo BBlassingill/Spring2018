@@ -245,7 +245,7 @@ class Mips extends MipsGenerator {
       => mips("j", name)
 
       case Move(Mem(Reg(destination)), Reg(source))
-      => mips("sw", source + ", " + "($" + destination + ")")
+      => mips("sw", "$" + source + ", " + "($" + destination + ")")
 
       case Move(Reg(destination), Reg(source))
       => mips("move", "$" + destination + ", $" + source)
@@ -284,6 +284,14 @@ class Mips extends MipsGenerator {
 
         rpool.recycle(temp2)
         rpool.recycle(temp1)
+
+      case Move(Reg(name), source)
+      => val temp1 = emit(source)
+
+        mips("move", "$" + name + ", " + temp1)
+
+        rpool.recycle(temp1)
+
 
       case SystemCall("WRITE_STRING", StringValue(str))
       => str match {
@@ -335,6 +343,26 @@ class Mips extends MipsGenerator {
         val temp2 = emit(right)
 
         mips("sgt", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case CJump(Binop("NEQ", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sne", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case CJump(Binop("EQ", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("seq", temp1 + ", " + temp1 + ", " + temp2)
         mips("beq", temp1 + ", 1" + ", " + label)
 
         rpool.recycle(temp2)
@@ -396,6 +424,7 @@ class Mips extends MipsGenerator {
         if (rpool.used().contains(temp1))
           rpool.recycle(temp3)
 
+      case _ => throw new Error("*** Unknown IR: " + e)
 
     }
 
