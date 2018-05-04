@@ -167,6 +167,12 @@ class Mips extends MipsGenerator {
 
         temp1
 
+      case Unop("MINUS", operand)
+      => val temp1 = emit(operand)
+        mips("neg", temp1 + ", " + temp1)
+
+        temp1
+
       case Binop("PLUS", left, right)
       => val temp1 = emit(left)
         val temp2 = emit(right)
@@ -368,6 +374,16 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         rpool.recycle(temp1)
 
+      case CJump(Binop("LEQ", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sle", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
       case CJump(Unop("NOT", op), label)
       => val temp1 = emit(op)
 
@@ -390,6 +406,12 @@ class Mips extends MipsGenerator {
         mips("beq", temp1 + ", 1, " + label)
 
         rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case CJump(IntValue(n), label)
+      => val temp1 = emit(IntValue(n))
+        mips("beq", temp1 + ", 1, " + label)
+
         rpool.recycle(temp1)
 
 
