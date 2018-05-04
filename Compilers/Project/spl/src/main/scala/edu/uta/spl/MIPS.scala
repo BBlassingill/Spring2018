@@ -384,6 +384,16 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         rpool.recycle(temp1)
 
+      case CJump(Binop("GEQ", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sge", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
       case CJump(Unop("NOT", op), label)
       => val temp1 = emit(op)
 
@@ -411,6 +421,14 @@ class Mips extends MipsGenerator {
       case CJump(IntValue(n), label)
       => val temp1 = emit(IntValue(n))
         mips("beq", temp1 + ", 1, " + label)
+
+        rpool.recycle(temp1)
+
+      case CallP(name, static_link, List())
+      => val temp1 = emit(static_link)
+
+        mips("move", "$v0, " + temp1)
+        mips("jal", name)
 
         rpool.recycle(temp1)
 
