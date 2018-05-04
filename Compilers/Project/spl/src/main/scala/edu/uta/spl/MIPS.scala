@@ -258,6 +258,18 @@ class Mips extends MipsGenerator {
 
         rpool.recycle(reg)
 
+      case SystemCall("READ_INT", Mem(Binop("PLUS", Reg(address), IntValue(n))))
+      => val temp1 = rpool.get()
+        val temp2 = rpool.get()
+        mips("li", temp1 + ", " + n)
+        mips("addu", temp2 + ", $" + address + ", " + temp1)
+        mips("li", "$v0, 5")
+        mips("syscall")
+        mips("sw", "$v0, (" + temp2 + ")")
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
       case Return()
       => mips("jr", "$ra")
 
