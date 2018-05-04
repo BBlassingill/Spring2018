@@ -158,6 +158,8 @@ class Mips extends MipsGenerator {
         res
 
       /* PUT YOUR CODE HERE */
+      case Reg(name)
+      => Register("$" + name)
 
       case _ => throw new Error("*** Unknown IR: " + e)
     }
@@ -172,21 +174,57 @@ class Mips extends MipsGenerator {
         rpool.recycle(src)
 
       /* PUT YOUR CODE HERE */
+      case Label(label)
+      => mips_label(label)
+
       case Move(Mem(Reg(destination)), Reg(source))
-      => //val src = emit(source)
-        mips("sw", source + ", " + "($" + destination + ")")
-      case Label("main")
-      => emit(Move(Mem(Reg("sp")), Reg("brittanyTest")))
+      => mips("sw", source + ", " + "($" + destination + ")")
+
+      case Move(Reg(destination), Reg(source))
+      => mips("move", "$" + destination + ", $" + source)
+
+      case Move(Reg(destination), Mem(Reg(source)))
+      => mips("lw", "$" + destination + ", ($" + source + ")")
+
+      case Move(Reg(source), Binop("PLUS", Reg(destination), IntValue(n)))
+      => val temp1 = rpool.get()
+        val temp2 = rpool.get()
+
+        mips("li", temp1 + ", " + n)
+        mips("addu", temp2 + ", $" + source + ", " + temp1)
+        mips("move", "$" + destination + ", " + temp2)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case Move(Reg(destination), Mem(Binop("PLUS", Reg(source), IntValue(n))))
+      => mips("lw", "$" + destination + ", " + n + "($" + source + ")")
 
 
-      case SystemCall("WRITE_STRING", StringValue("Hello World"))
-      => //val data = emit(arg)
-        mips_label("main")
-        mips(".data")
-        mips(".align", "2")
-        mips_label("testLabel")
-        mips(".asciiz", "myTestArg")
-      case _ => throw new Error("*** Unknown IR " + e)
+      case SystemCall("WRITE_STRING", StringValue(str))
+      => str match {
+        case "\\n" =>
+          mips("li", "$v0, " + 4)
+          mips("la", "$a0, ENDL_")
+          mips("syscall")
+        case _ =>
+          val temp = rpool.get()
+          val label = new_label()
+          mips(".data")
+          mips(".align", "2")
+          mips_label(label)
+          mips(".asciiz", "\"" + str + "\"")
+          mips(".text")
+          mips("la", "$t0, " + label)
+          mips("move", "$a0, " + temp)
+          mips("li", "$v0, " + 4)
+          mips("syscall")
+
+          rpool.recycle(temp)
+      }
+
+      case Return()
+      => mips("jr", "$ra")
     }
   }
 
