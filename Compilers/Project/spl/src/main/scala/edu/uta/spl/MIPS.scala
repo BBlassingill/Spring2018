@@ -161,6 +161,30 @@ class Mips extends MipsGenerator {
       case Reg(name)
       => Register("$" + name)
 
+      case IntValue(n)
+      => val temp1 = rpool.get()
+        mips("li", temp1 + ", " + n)
+
+        temp1
+
+      case Binop("PLUS", left, right)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("addu", temp1 + ", " + temp1 + ", " + temp2)
+
+        rpool.recycle(temp2)
+        temp1
+
+      case Binop("TIMES", left, right)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("mul", temp1 + ", " + temp1 + ", " + temp2)
+
+        rpool.recycle(temp2)
+        temp1
+
       case _ => throw new Error("*** Unknown IR: " + e)
     }
   }
@@ -176,6 +200,9 @@ class Mips extends MipsGenerator {
       /* PUT YOUR CODE HERE */
       case Label(label)
       => mips_label(label)
+
+      case Jump(name)
+      => mips("j", name)
 
       case Move(Mem(Reg(destination)), Reg(source))
       => mips("sw", source + ", " + "($" + destination + ")")
@@ -223,9 +250,69 @@ class Mips extends MipsGenerator {
           rpool.recycle(temp)
       }
 
+      case SystemCall("WRITE_INT", arg)
+      => val reg = emit(arg)
+        mips("move", "$a0, " + reg)
+        mips("li", "$v0, 1")
+        mips("syscall")
+
+        rpool.recycle(reg)
+
       case Return()
       => mips("jr", "$ra")
+
+      case CJump(Binop("GT", left, right), label)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("sgt", temp1 + ", " + temp1 + ", " + temp2)
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+
+      case CallP(name, static_link, args)
+      => val args_leng = args.length
+        var offset = 4 * args_leng
+        mips("subu", "$sp, $sp, " + offset)
+
+        val temp1 = emit(args.head)
+
+        mips("sw", temp1 + ", " + offset + "($sp)")
+
+        val temp2 = emit(static_link)
+
+        mips("move", "$v0, " + temp2)
+        mips("jal", name)
+        mips("addu", "$sp, $sp, " + (args_leng * 4))
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+      //
+      //        for (arg <- args.slice(1, args_leng)) {
+      //          offset -= 4
+      //          val temp2 = emit(arg)
+      //          rpool.recycle(temp2)
+      //          mips("sw", temp1 + ", " + offset + "($sp)")
+      //        }
+      //
+      //        val temp3 = emit(static_link)
+      //
+      //        mips("move", "$v0, " + temp3)
+      //        mips("jal", name)
+      //        mips("addu", "$sp, $sp, " + (args_leng * 4))
+      //
+      //        if (rpool.used().contains(temp1))
+      //          rpool.recycle(temp1)
+      //
+      //        if (rpool.used().contains(temp1))
+      //          rpool.recycle(temp3)
+
+
     }
+
+
   }
 
   /** generate initial MIPS code from the program */
