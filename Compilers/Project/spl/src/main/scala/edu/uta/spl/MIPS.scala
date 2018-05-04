@@ -185,6 +185,37 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         temp1
 
+      case Binop("LT", left, right)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("slt", temp1 + ", " + temp1 + ", " + temp2)
+
+        rpool.recycle(temp2)
+
+        temp1
+
+      case Allocate(size)
+      => val temp1 = emit(size)
+        val temp2 = rpool.get()
+
+        mips("li", temp2 + ", " + 4)
+        mips("mul", temp1 + ", " + temp1 + ", " + temp2)
+        mips("move", temp2 + ", $gp")
+        mips("addu", "$gp, $gp, " + temp1)
+
+        rpool.recycle(temp1)
+
+        temp2
+
+      case Mem(Binop("PLUS", left, right))
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        rpool.recycle(temp2)
+
+        temp1
+
       case _ => throw new Error("*** Unknown IR: " + e)
     }
   }
@@ -227,6 +258,23 @@ class Mips extends MipsGenerator {
       case Move(Reg(destination), Mem(Binop("PLUS", Reg(source), IntValue(n))))
       => mips("lw", "$" + destination + ", " + n + "($" + source + ")")
 
+      case Move(Mem(Binop("PLUS", left, IntValue(n))), source)
+      => val temp1 = emit(left)
+        val temp2 = emit(source)
+
+        mips("sw", temp2 + ", " + n + "(" + temp1 + ")")
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case Move(Mem(address), source)
+      => val temp1 = emit(address)
+        val temp2 = emit(source)
+
+        mips("sw", temp2 + ", (" + temp1 + ")")
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
 
       case SystemCall("WRITE_STRING", StringValue(str))
       => str match {
@@ -279,6 +327,30 @@ class Mips extends MipsGenerator {
 
         mips("sgt", temp1 + ", " + temp1 + ", " + temp2)
         mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp2)
+        rpool.recycle(temp1)
+
+      case CJump(Unop("NOT", op), label)
+      => val temp1 = emit(op)
+
+        mips("seq", temp1 + ", " + temp1 + ", 0")
+        mips("beq", temp1 + ", 1" + ", " + label)
+
+        rpool.recycle(temp1)
+
+      case CJump(Binop("AND", left, right), label)
+      => val newlabel = new_label()
+        val temp1 = emit(left)
+
+        mips("beq", temp1 + ", 0" + ", " + newlabel)
+        val temp2 = emit(right)
+
+        mips("move", temp1 + ", " + temp2)
+
+        mips_label(label)
+
+        mips("beq", temp1 + ", 1, " + label)
 
         rpool.recycle(temp2)
         rpool.recycle(temp1)
