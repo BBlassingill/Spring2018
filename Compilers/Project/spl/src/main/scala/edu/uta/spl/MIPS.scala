@@ -185,6 +185,15 @@ class Mips extends MipsGenerator {
         rpool.recycle(temp2)
         temp1
 
+      case Binop("MINUS", left, right)
+      => val temp1 = emit(left)
+        val temp2 = emit(right)
+
+        mips("subu", temp1 + ", " + temp1 + ", " + temp2)
+
+        rpool.recycle(temp2)
+        temp1
+
       case Binop("LT", left, right)
       => val temp1 = emit(left)
         val temp2 = emit(right)
@@ -363,35 +372,29 @@ class Mips extends MipsGenerator {
 
         val temp1 = emit(args.head)
 
+        if (rpool.used().contains(temp1))
+          rpool.recycle(temp1)
+
         mips("sw", temp1 + ", " + offset + "($sp)")
 
-        val temp2 = emit(static_link)
+        for (arg <- args.slice(1, args_leng)) {
+          offset -= 4
+          val temp2 = emit(arg)
+          rpool.recycle(temp2)
+          mips("sw", temp1 + ", " + offset + "($sp)")
+        }
 
-        mips("move", "$v0, " + temp2)
+        val temp3 = emit(static_link)
+
+        mips("move", "$v0, " + temp3)
         mips("jal", name)
         mips("addu", "$sp, $sp, " + (args_leng * 4))
 
-        rpool.recycle(temp2)
-        rpool.recycle(temp1)
-      //
-      //        for (arg <- args.slice(1, args_leng)) {
-      //          offset -= 4
-      //          val temp2 = emit(arg)
-      //          rpool.recycle(temp2)
-      //          mips("sw", temp1 + ", " + offset + "($sp)")
-      //        }
-      //
-      //        val temp3 = emit(static_link)
-      //
-      //        mips("move", "$v0, " + temp3)
-      //        mips("jal", name)
-      //        mips("addu", "$sp, $sp, " + (args_leng * 4))
-      //
-      //        if (rpool.used().contains(temp1))
-      //          rpool.recycle(temp1)
-      //
-      //        if (rpool.used().contains(temp1))
-      //          rpool.recycle(temp3)
+        if (rpool.used().contains(temp1))
+          rpool.recycle(temp1)
+
+        if (rpool.used().contains(temp1))
+          rpool.recycle(temp3)
 
 
     }
