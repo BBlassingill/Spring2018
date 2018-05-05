@@ -97,7 +97,11 @@ def createSlices(data, counts) :
 	
 def selectTopFeatures(data,scores,numFeatures) :
   features = []
-  print(scores)
+  featureResults = []
+  newData = data.T[1:]
+  newData = newData[::-1,::-1]
+  newData = np.flip(np.flip(newData, 0), 1)
+  # print(newData[0])
   scores = sorted(scores.items(), key=itemgetter(1), reverse = True)
 
   # print("printing sorted dictionary")
@@ -106,7 +110,14 @@ def selectTopFeatures(data,scores,numFeatures) :
   # n_items = list(islice(scores, 2))
   # print(n_items)
   features = list(islice(scores, numFeatures))
-  # print(scores)
+  
+  print("The top " + str(numFeatures) + " features are as follows:")
+  for featureNum, fScore in features :
+    featureResults.append(newData[featureNum-1])
+    print("Feature number: " + str(featureNum) + " \tF-score: " + str(fScore))
+    
+    
+  return featureResults
 def main() :
 	data = getData('GenomeTrainXY.txt')
 # 	print(data)
