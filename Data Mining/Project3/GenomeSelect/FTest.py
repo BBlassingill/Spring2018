@@ -1,6 +1,7 @@
 import csv
 import math
 import numpy as np
+import dataHandler as dh
 import pandas as pd
 from collections import defaultdict
 from collections import Counter
@@ -70,8 +71,7 @@ def calculateFScore(avgOfFeature, averages, variances, lengthDict, lenOfFeature)
 
   result = (firstTerm/(secondTerm/(lenOfFeature-(len(lengthDict)))))
   return result
-  # print("final result: " + str(result))
-  
+
 	
 def calculateAverage(slice) :
   return np.mean(slice)
@@ -99,29 +99,34 @@ def selectTopFeatures(data,scores,numFeatures) :
   features = []
   featureResults = []
   newData = data.T[1:]
-  newData = newData[::-1,::-1]
-  newData = np.flip(np.flip(newData, 0), 1)
-  # print(newData[0])
+  # print(data.T[0:1])
+  featureResults.append(list(data.T[0:1][0]))
+  # print(featureResults)
+  # newData = newData[::-1,::-1]
+  # newData = np.flip(np.flip(newData, 0), 1)
+
   scores = sorted(scores.items(), key=itemgetter(1), reverse = True)
-
-  # print("printing sorted dictionary")
-
-  
-  # n_items = list(islice(scores, 2))
-  # print(n_items)
   features = list(islice(scores, numFeatures))
   
-  print("The top " + str(numFeatures) + " features are as follows:")
+  # print("The top " + str(numFeatures) + " features are as follows:")
   for featureNum, fScore in features :
-    featureResults.append(newData[featureNum-1])
-    print("Feature number: " + str(featureNum) + " \tF-score: " + str(fScore))
-    
-    
-  return featureResults
+    featureResults.append(list(newData[featureNum-1]))
+    # print(newData[featureNum-1])
+    # print("Feature number: " + str(featureNum) + " \tF-score: " + str(fScore))
+  
+  # print(np.asarray(featureResults))  
+  return np.asarray(featureResults)
 def main() :
 	data = getData('GenomeTrainXY.txt')
-# 	print(data)
 	scores = computeScore(data)
-	selectTopFeatures(data, scores, 100)
+	#Task A
+	topFeatures = selectTopFeatures(data, scores, 100)
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures, 40, 4434)
+	
+	#Task B
+# 	subsetData = dh.pickDataClass("HandWrittenLetters.txt", [1])
+# 	print(subsetData)
+  # X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures, 40, 4434)
+	#Task C
 
 main()					
