@@ -19,11 +19,12 @@ def getData(filename) :
 
 	return X
 
-def computeVariance(data) :
+def computeScore(data) :
 	classLabels = set((data[:,0].astype('int64')))
 	classLabelAssignments = data[:,0].astype('int64')
 	counts = Counter(classLabelAssignments)
-	
+	featureNum = 1
+	featureScores = {}
 	slices = createSlices(data, counts)
 	
 	for feature in slices:
@@ -43,6 +44,12 @@ def computeVariance(data) :
 	    count = count + 1
 
 	  f_score = calculateFScore(avgOfFeature, averages, variances, lengthDict, len(flat_list))
+	  featureScores[featureNum] = f_score#, feature#
+	  featureNum = featureNum + 1
+	 # print(f_score)
+	  
+	  return featureScores
+# 	print(featureScores)
 
 def calculateFScore(avgOfFeature, averages, variances, lengthDict, lenOfFeature) :
   firstTerm = 0.0
@@ -60,14 +67,14 @@ def calculateFScore(avgOfFeature, averages, variances, lengthDict, lenOfFeature)
     secondTerm = secondTerm + (lengthDict[key]-1)*variances[key]
 
   result = (firstTerm/(secondTerm/(lenOfFeature-(len(lengthDict)))))
-  print("final result: " + str(result))
+  return result
+  # print("final result: " + str(result))
   
 	
 def calculateAverage(slice) :
   return np.mean(slice)
   
 def calculateVariance(slice) :
-  # print("current slice: " + str(slice))
   # calculate by hand: https://stackoverflow.com/questions/35583302/how-can-i-calculate-the-variance-of-a-list-in-python
   return np.var(slice, ddof=1)
   
@@ -83,19 +90,15 @@ def createSlices(data, counts) :
 	for row in newData:
 		it = iter(row)
 		slices.append([list(islice(it, 0, i)) for i in sliceList])
-# 	print(slices)
-
-# 	numClasses = len(counts)
-
-# 	for vector in slices:
-# 		for x in range(numClasses):
-# 			myDict[x+1].append(vector[x])
 
 	return slices
+	
+def selectTopFeatures(scores numFeatures)
 
 def main() :
 	data = getData('GenomeTrainXY.txt')
-	print(data)
-	computeVariance(data)
+# 	print(data)
+	scores = computeScore(data)
+	selectTopFeatures(scores, 100)
 
 main()					
