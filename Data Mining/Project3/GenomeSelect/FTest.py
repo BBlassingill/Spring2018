@@ -5,6 +5,8 @@ import pandas as pd
 from collections import defaultdict
 from collections import Counter
 from itertools import islice
+from operator import itemgetter
+
 
 def getData(filename) :
 	data = []
@@ -48,7 +50,7 @@ def computeScore(data) :
 	  featureNum = featureNum + 1
 	 # print(f_score)
 	  
-	  return featureScores
+	return featureScores
 # 	print(featureScores)
 
 def calculateFScore(avgOfFeature, averages, variances, lengthDict, lenOfFeature) :
@@ -93,12 +95,22 @@ def createSlices(data, counts) :
 
 	return slices
 	
-def selectTopFeatures(scores numFeatures)
+def selectTopFeatures(data,scores,numFeatures) :
+  features = []
+  print(scores)
+  scores = sorted(scores.items(), key=itemgetter(1), reverse = True)
 
+  # print("printing sorted dictionary")
+
+  
+  # n_items = list(islice(scores, 2))
+  # print(n_items)
+  features = list(islice(scores, numFeatures))
+  # print(scores)
 def main() :
 	data = getData('GenomeTrainXY.txt')
 # 	print(data)
 	scores = computeScore(data)
-	selectTopFeatures(scores, 100)
+	selectTopFeatures(data, scores, 100)
 
 main()					
