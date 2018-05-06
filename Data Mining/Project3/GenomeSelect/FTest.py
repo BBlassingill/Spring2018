@@ -3,6 +3,7 @@ import math
 import numpy as np
 import dataHandler as dh
 import pandas as pd
+import CustomKNNClassifier as knn
 from collections import defaultdict
 from collections import Counter
 from itertools import islice
@@ -121,12 +122,18 @@ def main() :
 	scores = computeScore(data)
 	#Task A
 	topFeatures = selectTopFeatures(data, scores, 100)
-	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures, 40, 4434)
-	
+# 	print(topFeatures)
+
 	#Task B
-# 	subsetData = dh.pickDataClass("HandWrittenLetters.txt", [1])
-# 	print(subsetData)
+	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures.T, 40, 4)
+
   # X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures, 40, 4434)
 	#Task C
+	model = knn.CustomKNNClassifier(neighbors=2)
+	model = model.fit(X_train, y_train)
+	predicted_labels = model.predict(X_test)
+	print(predicted_labels)
+	print()
+	print(y_test)
 
 main()					
