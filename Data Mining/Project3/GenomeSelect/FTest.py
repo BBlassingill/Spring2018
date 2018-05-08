@@ -4,10 +4,17 @@ import numpy as np
 import dataHandler as dh
 import pandas as pd
 import CustomKNNClassifier as knn
+import CustomCentroidClassifier as centroid
+import LinearRegression as linear
+
+from sklearn import svm
+
+import itertools 
 from collections import defaultdict
 from collections import Counter
 from itertools import islice
 from operator import itemgetter
+from sklearn.linear_model import LinearRegression
 
 
 def getData(filename) :
@@ -53,7 +60,6 @@ def computeScore(data) :
 	 # print(f_score)
 	  
 	return featureScores
-# 	print(featureScores)
 
 def calculateFScore(avgOfFeature, averages, variances, lengthDict, lenOfFeature) :
   firstTerm = 0.0
@@ -108,32 +114,94 @@ def selectTopFeatures(data,scores,numFeatures) :
 
   scores = sorted(scores.items(), key=itemgetter(1), reverse = True)
   features = list(islice(scores, numFeatures))
+
+  featureNums =[]
   
   # print("The top " + str(numFeatures) + " features are as follows:")
   for featureNum, fScore in features :
     featureResults.append(list(newData[featureNum-1]))
+    featureNums.append(featureNum)
     # print(newData[featureNum-1])
     # print("Feature number: " + str(featureNum) + " \tF-score: " + str(fScore))
   
   # print(np.asarray(featureResults))  
-  return np.asarray(featureResults)
+  return np.asarray(featureResults), featureNums
+
+def selectTopFeaturesOfTestData(X_train, featureNums, filename) :
+	data = []
+
+	with open(filename, 'r') as f:
+		reader = csv.reader(f, delimiter=",")
+		for row in reader:
+			data.append(row)
+
+	X = np.array(data, dtype='float64')
+	# print(featureNums)
+	newList = []
+
+	for index in featureNums :
+		newList.append(X[index-1])
+
+	newX = np.array(newList)
+	
+	return newX	
+
+	# for row1 in X_train :
+	# 	# for row2 in X :
+	# 	# 	if (row1 == row2) :
+	# 	# 		newList.append(row2)
+	# 	# print(row1)
+	# 	if (row1 in X_train) :
+	# 		newList.append(row1) 
+
+	# wtf = np.in1d(X_train, X)
+	# print(X_train)
+	# print()
+	# print(newList)
+	# print(wtf)
+	# print()
+	# print(X.flatten())
+	# print()
+	
+
 def main() :
 	data = getData('GenomeTrainXY.txt')
 	scores = computeScore(data)
 	#Task A
-	topFeatures = selectTopFeatures(data, scores, 100)
-# 	print(topFeatures)
+	topFeatures, featureNums = selectTopFeatures(data, scores, 100)
 
-	#Task B
-	X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures.T, 40, 4)
+	X_train = topFeatures[1:]
+	y_train = topFeatures[0]
 
-  # X_train, y_train, X_test, y_test = dh.splitData2TestTrain(topFeatures, 40, 4434)
-	#Task C
-	model = knn.CustomKNNClassifier(neighbors=2)
-	model = model.fit(X_train, y_train)
-	predicted_labels = model.predict(X_test)
+
+	X_test = selectTopFeaturesOfTestData(X_train, featureNums, 'GenomeTestX.txt')
+
+	model = knn.CustomKNNClassifier(neighbors=3)
+	model = model.fit(X_train.T, y_train.T)
+	predicted_labels = model.predict(X_test.T)
 	print(predicted_labels)
-	print()
-	print(y_test)
+
+	model = centroid.CustomCentroidClassifier()
+	model = model.fit(X_train.T, y_train.T)
+	predicted_labels = model.predict(X_test.T)
+	print(predicted_labels)
+
+	model = svm.SVC(kernel='linear')
+	model = model.fit(X_train.T, y_train.T)
+	predicted_labels = model.predict(X_test.T)
+	print(predicted_labels)
+
+	print("my linear regression")
+	model = linear.LinearRegression()
+	model = model.fit(X_train.T, y_train.T)
+	predicted_labels = model.predict(X_test.T)
+	print(predicted_labels)
+
+	print("model linear regression")
+	model = LinearRegression()
+	model = model.fit(X_train.T, y_train.T)
+	predicted_labels = model.predict(X_test.T)
+	roundedLabels = [round(x) for x in predicted_labels]
+	print(roundedLabels)
 
 main()					
