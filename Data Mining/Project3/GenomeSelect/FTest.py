@@ -15,6 +15,8 @@ from collections import Counter
 from itertools import islice
 from operator import itemgetter
 from sklearn.linear_model import LinearRegression
+from numpy.linalg import eig
+from sklearn.preprocessing import StandardScaler
 
 
 def getData(filename) :
@@ -204,4 +206,66 @@ def main() :
 	roundedLabels = [round(x) for x in predicted_labels]
 	print(roundedLabels)
 
+	# x = np.array([[8, -20], [0, -1], [10, -19], [10, -20], [2, 0]])
+	# print(x)
+	# print()
+	# # Compute mean and coviariance matrix for D
+	# M = np.mean(x, axis=0)
+	# print(M)
+	# print()
+	# c1 = x - M
+	# print(c1)
+	# print()
+	# c = np.cov(c1)
+	# print(c)
+	# print()
+
+	# values, vectors = eig(c)
+	# print(values)
+	# print(vectors)
+	# Compute eigenvalues of covariance matrix
+	# What is the intrinsic dimensionality of this dataset?
+	# Compute the first principal component
+
+	#PCA with real data: https://plot.ly/ipython-notebooks/principal-component-analysis/
+
+	#Load the data set
+	df = pd.read_csv(
+    	filepath_or_buffer='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data', 
+    	header=None, 
+    	sep=',')
+
+	df.columns=['sepal_len', 'sepal_wid', 'petal_len', 'petal_wid', 'class']
+	df.dropna(how="all", inplace=True) # drops the empty line at file-end
+
+	# Split data into X_train and y_train
+	X = df.ix[:,0:4].values
+	y = df.ix[:,4].values
+
+	#Standardize data - may not need to do this step on computer quiz
+	X_std = StandardScaler().fit_transform(X)
+
+	#The eigenvectors (principal components) determine the directions of the new feature space, and the eigenvalues determine their magnitude. In other words, the eigenvalues explain the variance of the data along the new feature axes.
+
+	#Compute covariance matrix
+	cov_mat = np.cov(X_std.T)
+
+	#Compute eigenvalues and eigenvectors
+	eig_vals, eig_vecs = eig(cov_mat)
+
+
+	#Compute instrinsic dimensionality - I guess it's the number of positive eigenvalues?
+
+	#Compute the first principal component
+	#The eigenvectors with the lowest eigenvalues bear the least information about the distribution of the data; those are the ones can be dropped.
+	#In order to do so, the common approach is to rank the eigenvalues from highest to lowest in order choose the top k eigenvectors.
+
+	# Make a list of (eigenvalue, eigenvector) tuples
+	eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:,i]) for i in range(len(eig_vals))]
+
+	# Sort the (eigenvalue, eigenvector) tuples from high to low
+	eig_pairs.sort()
+	eig_pairs.reverse()
+
+	print("The first principal component is: " + str(eig_pairs[0][1]))
 main()					
